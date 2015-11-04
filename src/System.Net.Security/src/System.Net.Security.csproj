@@ -235,6 +235,12 @@
     <Compile Include="$(CommonPath)\Interop\Unix\Interop.Libraries.cs">
       <Link>Common\Interop\Unix\Interop.Libraries.cs</Link>
     </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\libgss\Interop.GssApi.cs">
+      <Link>Common\Interop\Unix\libgss\Interop.GssApi.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\libgss\Interop.GssApiException.cs">
+      <Link>Common\Interop\Unix\libgss\Interop.GssApiException.cs</Link>
+    </Compile>
     <Compile Include="$(CommonPath)\Interop\Unix\libssl\SecuritySafeHandles.cs">
       <Link>Common\Interop\Unix\libssl\SecuritySafeHandles.cs</Link>
     </Compile>
@@ -249,6 +255,9 @@
     </Compile>
     <Compile Include="$(CommonPath)\Interop\Unix\libssl\Interop.X509ChannelBindingHash.cs">
       <Link>Common\Interop\Unix\libssl\Interop.X509ChannelBindingHash.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\Interop.Gss.cs">
+      <Link>Common\Interop\Unix\System.Net.Security.Native\Interop.Gss.cs</Link>
     </Compile>
     <Compile Include="$(CommonPath)\Interop\Unix\System.Security.Cryptography.Native\Interop.ASN1.cs">
       <Link>Common\Interop\Unix\System.Security.Cryptography.Native\Interop.ASN1.cs</Link>
