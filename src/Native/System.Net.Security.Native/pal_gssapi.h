@@ -4,10 +4,12 @@
 #pragma once
 #include "pal_types.h"
 
-#include <gssapi/gssapi.h>
-#ifdef  HAVE_GSSAPI_EXT_H
+#ifdef  GSSFW
+#include <GSS/GSS.h>
+#else
 #include <gssapi/gssapi_ext.h>
 #endif
+
 
 enum GssStatus : uint32_t
 {
