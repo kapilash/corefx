@@ -4,7 +4,12 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 add_definitions(-DPIC=1)
 
-find_library(LIBGSS NAMES libgssapi_krb5)
+if (APPLE)
+   find_library(LIBGSS NAMES GSS)
+else()
+   find_library(LIBGSS NAMES libgssapi_krb5)
+endif()
+
 if(LIBGSS STREQUAL LIBGSS-NOTFOUND)
     message(SEND_ERROR "!!! Cannot find libkrb5-dev and System.Net.Security.Native cannot build without it. Try installing libkrb5-dev (or the appropriate package for your platform) !!!")
     return()

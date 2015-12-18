@@ -259,6 +259,10 @@ check_include_files(
     linux/rtnetlink.h
     HAVE_LINUX_RTNETLINK_H)
 
+check_include_files(
+    gssapi/gssapi_ext.h
+    HAVE_GSSAPI_EXT_H)
+
 # getdomainname on OSX takes an 'int' instead of a 'size_t'
 # check if compiling with 'size_t' would cause a warning
 set (PREVIOUS_CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS})
