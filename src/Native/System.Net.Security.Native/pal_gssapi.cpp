@@ -100,6 +100,12 @@ extern "C" uint32_t GssAcquireCredWithPasswordSpNego(uint32_t* minorStatus, cons
 {
     gss_cred_usage_t credUsage = isInitiate ? GSS_C_INITIATE : GSS_C_ACCEPT;
     gss_buffer_desc passwordBuffer {strlen(password), password};
+
+#ifdef GSSFW
+        return gss_acquire_cred_with_password(minorStatus, desiredName, &passwordBuffer, 0, NULL,
+                                          credUsage, outputCredHandle, NULL, NULL);
+#else
     return gss_acquire_cred_with_password(minorStatus, desiredName, &passwordBuffer, 0, gss_mech_spnego_OID_set,
                                           credUsage, outputCredHandle, NULL, NULL);
+#endif
 }
