@@ -6,8 +6,8 @@
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.props))\dir.props" />
   <PropertyGroup>
     <AssemblyName>System.Net.Security</AssemblyName>
-    <AssemblyVersion>4.0.0.0</AssemblyVersion>
-    <OutputType>Library</OutputType>
+    <AssemblyVersion>4.0.0</AssemblyVersion>
+    <OutputType>exe</OutputType>
     <ProjectGuid>{89F37791-6254-4D60-AB96-ACD3CCA0E771}</ProjectGuid>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants>$(DefineConstants);FEATURE_CORECLR</DefineConstants>
@@ -241,8 +241,22 @@
     <Compile Include="$(CommonPath)\Interop\Unix\libgss\Interop.GssApiException.cs">
       <Link>Common\Interop\Unix\libgss\Interop.GssApiException.cs</Link>
     </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\libgss\MockUtils.cs">
+      <Link>Common\Interop\Unix\libgss\MockUtils.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\libgss\MockNegotiateStream.cs">
+      <Link>Common\Interop\Unix\libgss\MockNegotiateStream.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\libgss\Program.cs">
+      <Link>Common\Interop\Unix\libgss\Program.cs</Link>
+    </Compile>
+
+    <Compile Include="System\Net\NegotiateStreamPal.Unix.cs" />
     <Compile Include="$(CommonPath)\Interop\Unix\libssl\SecuritySafeHandles.cs">
       <Link>Common\Interop\Unix\libssl\SecuritySafeHandles.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\libgss\SecuritySafeHandles.cs">
+      <Link>Common\Interop\Unix\libgss\SecuritySafeHandles.cs</Link>
     </Compile>
     <Compile Include="$(CommonPath)\Interop\Unix\libssl\StreamSizes.cs">
       <Link>Common\Interop\Unix\libssl\StreamSizes.cs</Link>

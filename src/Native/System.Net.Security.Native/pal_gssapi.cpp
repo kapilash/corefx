@@ -18,12 +18,6 @@ static gss_OID_set_desc gss_mech_spnego_OID_set_desc = {1, &gss_mech_spnego_OID_
 
 static gss_OID_set gss_mech_spnego_OID_set = &gss_mech_spnego_OID_set_desc;
 
-extern "C" uint32_t GssAcceptSecContext(uint32_t* minorStatus, gss_ctx_id_t* contextHandle, gss_cred_id_t acceptorCredHandle,
-                                        gss_buffer_t inputToken, gss_buffer_t outputToken, uint32_t* retFlags)
-{
-    return gss_accept_sec_context(minorStatus, contextHandle, acceptorCredHandle, inputToken, GSS_C_NO_CHANNEL_BINDINGS, NULL, NULL, outputToken, retFlags, NULL, NULL);
-}
-
 extern "C" uint32_t GssAcquireCredSpNego(uint32_t* minorStatus, gss_name_t desiredName, bool isInitiate, gss_cred_id_t* outputCredHandle)
 {
     gss_cred_usage_t credUsage = isInitiate ? GSS_C_INITIATE : GSS_C_ACCEPT;
@@ -46,17 +40,23 @@ extern "C" uint32_t GssDisplayStatus(uint32_t* minorStatus, uint32_t statusValue
     return gss_display_status(minorStatus, statusValue, statusType, GSS_C_NO_OID, NULL, statusString);
 }
 
-extern "C" uint32_t GssImportNtUserName(uint32_t* minorStatus, char* inputName, gss_name_t* outputName)
+extern "C" uint32_t GssImportName(uint32_t* minorStatus, char* inputName, bool isUser, gss_name_t* outputName)
 {
     gss_buffer_desc inputNameBuffer {strlen(inputName), inputName};
-    return gss_import_name(minorStatus, &inputNameBuffer, GSS_C_NT_USER_NAME, outputName);
+#if GSSFW
+    gss_OID nameType = isUser ? GSS_C_NT_USER_NAME : GSS_C_NT_HOSTBASED_SERVICE;
+#else
+    gss_OID nameType = isUser ? GSS_C_NT_USER_NAME : GSS_KRB5_NT_PRINCIPAL_NAME;
+#endif
+    return gss_import_name(minorStatus, &inputNameBuffer, nameType, outputName);
 }
 
 extern "C" uint32_t GssInitSecContextSpNego(uint32_t* minorStatus, gss_cred_id_t claimantCredHandle, gss_ctx_id_t* contextHandle,
-                                            gss_name_t targetName, uint32_t reqFlags, gss_buffer_t inputToken, gss_buffer_t outputToken, uint32_t* retFlags)
+                                            gss_name_t targetName, uint32_t reqFlags, uint8_t* inputBytes, int32_t inputLength, gss_buffer_t outputToken, uint32_t* retFlags)
 {
+    gss_buffer_desc inputToken {static_cast<size_t>(inputLength), inputBytes};
     return gss_init_sec_context(minorStatus, claimantCredHandle, contextHandle, targetName, gss_mech_spnego_OID, reqFlags,
-                                0, GSS_C_NO_CHANNEL_BINDINGS, inputToken, NULL, outputToken, retFlags, NULL);
+                                0, GSS_C_NO_CHANNEL_BINDINGS, &inputToken, NULL, outputToken, retFlags, NULL);
 }
 
 extern "C" uint32_t GssInquireSourceName(uint32_t* minorStatus, gss_ctx_id_t contextHandle, gss_name_t* srcName)
@@ -79,20 +79,22 @@ extern "C" uint32_t GssReleaseName(uint32_t* minorStatus, gss_name_t* inputName)
     return gss_release_name(minorStatus, inputName);
 }
 
-extern "C" uint32_t GssWrap(uint32_t* minorStatus, gss_ctx_id_t contextHandle, bool isEncrypt, gss_buffer_t inputMessageBuffer,
-                             gss_buffer_t outputMessageBuffer)
+extern "C" uint32_t GssWrap(uint32_t* minorStatus, gss_ctx_id_t contextHandle, bool isEncrypt,
+                             uint8_t* inputBytes, int32_t offset, int32_t count, gss_buffer_t outputMessageBuffer)
 {
+    gss_buffer_desc inputMessageBuffer {static_cast<size_t>(count), inputBytes + offset};
     int confState;
     int confReqFlag = isEncrypt ? 1 : 0;
-    uint32_t retVal = gss_wrap(minorStatus, contextHandle, confReqFlag, GSS_C_QOP_DEFAULT, inputMessageBuffer, &confState, outputMessageBuffer);
+    uint32_t retVal = gss_wrap(minorStatus, contextHandle, confReqFlag, GSS_C_QOP_DEFAULT, &inputMessageBuffer, &confState, outputMessageBuffer);
     assert((confState == 0) == (confReqFlag == 0));
     return retVal;
 }
 
-extern "C" uint32_t GssUnwrap(uint32_t* minorStatus, gss_ctx_id_t contextHandle, gss_buffer_t inputMessageBuffer,
-                              gss_buffer_t outputMessageBuffer)
+extern "C" uint32_t GssUnwrap(uint32_t* minorStatus, gss_ctx_id_t contextHandle,
+                             uint8_t* inputBytes, int32_t offset, int32_t count, gss_buffer_t outputMessageBuffer)
 {
-    return gss_unwrap(minorStatus, contextHandle, inputMessageBuffer, outputMessageBuffer, NULL, NULL);
+    gss_buffer_desc inputMessageBuffer {static_cast<size_t>(count), inputBytes + offset};
+    return gss_unwrap(minorStatus, contextHandle, &inputMessageBuffer, outputMessageBuffer, NULL, NULL);
 }
 
 extern "C" uint32_t GssAcquireCredWithPasswordSpNego(uint32_t* minorStatus, const gss_name_t desiredName, char* password, bool isInitiate,

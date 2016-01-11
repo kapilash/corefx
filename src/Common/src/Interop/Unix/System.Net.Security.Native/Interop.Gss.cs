@@ -25,9 +25,10 @@ internal static partial class Interop
             SafeGssBufferHandle statusString);
 
         [DllImport(Interop.Libraries.SecurityNative, CharSet = CharSet.Ansi)]
-        internal static extern Status GssImportNtUserName(
+        internal static extern Status GssImportName(
             out Status minorStatus,
             string inputName,
+	    bool isUser,
             out SafeGssNameHandle outputName);
 
         [DllImport(Interop.Libraries.SecurityNative)]
@@ -62,9 +63,10 @@ internal static partial class Interop
             ref SafeGssContextHandle contextHandle,
             SafeGssNameHandle targetName,
             uint reqFlags,
-            SafeGssBufferHandle inputToken,
+	    byte[] inputBytes,
+	    int inputLength,
             SafeGssBufferHandle outputToken,
-            out uint retFlags);
+	    out uint retFlags);
 
         [DllImport(Interop.Libraries.SecurityNative)]
         internal static extern Status GssAcceptSecContext(
@@ -85,14 +87,18 @@ internal static partial class Interop
             out Status minorStatus,
             SafeGssContextHandle contextHandle,
             bool isEncrypt,
-            SafeGssBufferHandle inputMessageBuffer,
+	    byte[] inputBytes,
+            int offset,
+            int count,
             SafeGssBufferHandle outputMessageBuffer);
 
         [DllImport(Interop.Libraries.SecurityNative)]
         internal static extern Status GssUnwrap(
             out Status minorStatus,
             SafeGssContextHandle contextHandle,
-            SafeGssBufferHandle inputMessageBuffer,
+	    byte[] inputBytes,
+	    int offset,
+	    int count,
             SafeGssBufferHandle outputMessageBuffer);
 
         [DllImport(Interop.Libraries.SecurityNative)]
@@ -119,18 +125,35 @@ internal static partial class Interop
             GSS_S_COMPLETE = 0,
             GSS_S_CONTINUE_NEEDED = 1
         }
+
+        [FlagsAttribute]
+        internal enum GssFlags : uint
+        {
+            GSS_C_DELEG_FLAG = 1,
+            GSS_C_MUTUAL_FLAG = 2,
+            GSS_C_REPLAY_FLAG = 4,
+            GSS_C_SEQUENCE_FLAG = 8,
+            GSS_C_CONF_FLAG = 16,
+            GSS_C_INTEG_FLAG = 32,
+            GSS_C_ANON_FLAG = 64,
+            GSS_C_PROT_READY_FLAG = 128,
+            GSS_C_TRANS_FLAG = 256,
+            GSS_C_DCE_STYLE = 4096,
+            GSS_C_IDENTIFY_FLAG = 8192,
+            GSS_C_EXTENDED_ERROR_FLAG = 16384,
+            GSS_C_DELEG_POLICY_FLAG = 32768
+        }
     }
 }
 
 namespace Microsoft.Win32.SafeHandles
 {
     /// <summary>
-    /// Wrapper around a gss_buffer_desc*
+    /// Wrapper around an output gss_buffer_desc*
     /// </summary>
     internal sealed class SafeGssBufferHandle : SafeHandle
     {
         private GCHandle _gch;
-        private GCHandle _arrayGcHandle = new GCHandle();
 
         // Return the buffer size
         public int Length
@@ -158,32 +181,12 @@ namespace Microsoft.Win32.SafeHandles
             }
         }
 
-        public SafeGssBufferHandle()
-            : this(0, IntPtr.Zero)
-        {
-        }
-
-        public SafeGssBufferHandle(byte[] data)
-            : this(data, 0, (data == null) ? 0 : data.Length)
-        {
-        }
-
-        public SafeGssBufferHandle(byte[] data, int offset, int count)
-            : this(count, IntPtr.Zero)
-        {
-            if (data == null) return;
-            _arrayGcHandle = GCHandle.Alloc(data, GCHandleType.Pinned);
-            IntPtr address = new IntPtr(_arrayGcHandle.AddrOfPinnedObject().ToInt64() + offset);
-            Marshal.WriteIntPtr(handle, (int)Marshal.OffsetOf<Interop.libgssapi.gss_buffer_desc>("value"), address);
-        }
-
-        private SafeGssBufferHandle(int length, IntPtr ptrValue)
-            : base(IntPtr.Zero, true)
+        public SafeGssBufferHandle() : base(IntPtr.Zero, true)
         {
             Interop.libgssapi.gss_buffer_desc buffer = new Interop.libgssapi.gss_buffer_desc
             {
-                length = (size_t)length,
-                value = ptrValue,
+                length = (size_t)0,
+                value = IntPtr.Zero,
             };
 
             _gch = GCHandle.Alloc(buffer, GCHandleType.Pinned);
@@ -203,16 +206,11 @@ namespace Microsoft.Win32.SafeHandles
             Interop.libgssapi.gss_buffer_desc buffer = (Interop.libgssapi.gss_buffer_desc) _gch.Target;
             if (buffer.value != IntPtr.Zero)
             {
-                if (_arrayGcHandle.IsAllocated)
-                {
-                    _arrayGcHandle.Free();
-                }
-                else
-                {
-                    Interop.libgssapi.Status minorStatus;
-                    Interop.libgssapi.Status status = Interop.libgssapi.GssReleaseBuffer(out minorStatus, ref buffer);
-                    Interop.libgssapi.GssApiException.AssertOrThrowIfError("GssReleaseBuffer failed", status, minorStatus);
-                }
+
+		Interop.libgssapi.Status minorStatus;
+		Interop.libgssapi.Status status = Interop.libgssapi.GssReleaseBuffer(out minorStatus, ref buffer);
+		Interop.libgssapi.GssApiException.AssertOrThrowIfError("GssReleaseBuffer failed", status, minorStatus);
+
             }
             _gch.Free();
             SetHandle(IntPtr.Zero);
@@ -225,12 +223,12 @@ namespace Microsoft.Win32.SafeHandles
     /// </summary>
     internal sealed class SafeGssNameHandle : SafeHandle
     {
-        public static SafeGssNameHandle Create(string name)
+        public static SafeGssNameHandle Create(string name, bool isUser)
         {
             Debug.Assert(!String.IsNullOrEmpty(name), "Invalid name passed to SafeGssNameHandle create");
             SafeGssNameHandle retHandle;
             Interop.libgssapi.Status minorStatus;
-            Interop.libgssapi.Status status = Interop.libgssapi.GssImportNtUserName(out minorStatus, name, out retHandle);
+	    Interop.libgssapi.Status status = Interop.libgssapi.GssImportName(out minorStatus, name, isUser, out retHandle);
             if (status != Interop.libgssapi.Status.GSS_S_COMPLETE)
             {
                 throw Interop.libgssapi.GssApiException.Create(status, minorStatus);
@@ -271,7 +269,7 @@ namespace Microsoft.Win32.SafeHandles
             // Empty username is OK if Kerberos ticket was already obtained
             if (!String.IsNullOrEmpty(username))
             {
-                using (SafeGssNameHandle userHandle = SafeGssNameHandle.Create(username))
+                using (SafeGssNameHandle userHandle = SafeGssNameHandle.Create(username, true))
                 {
                     Interop.libgssapi.Status status;
                     Interop.libgssapi.Status minorStatus;
@@ -336,3 +334,5 @@ namespace Microsoft.Win32.SafeHandles
         }
     }
 }
+
+

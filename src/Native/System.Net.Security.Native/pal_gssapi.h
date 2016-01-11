@@ -34,9 +34,8 @@ extern "C" uint32_t GssDisplayName(uint32_t* minorStatus, gss_name_t inputName, 
 
 /*
 Shims the gss_import_name method.
-This method will import NT type usernames only.
 */
-extern "C" uint32_t GssImportNtUserName(uint32_t* minorStatus, char* inputName, gss_name_t* outputName);
+extern "C" uint32_t GssImportName(uint32_t* minorStatus, char* inputName, bool isUser, gss_name_t* outputName);
 
 /*
 Shims the gss_release_name method.
@@ -57,13 +56,7 @@ extern "C" uint32_t GssReleaseCred(uint32_t* minorStatus, gss_cred_id_t* credHan
 Shims the gss_init_sec_context method with SPNEGO oids.
 */
 extern "C" uint32_t GssInitSecContextSpNego(uint32_t* minorStatus, gss_cred_id_t claimantCredHandle, gss_ctx_id_t* contextHandle,
-                                            gss_name_t targetName, uint32_t reqFlags, gss_buffer_t inputToken, gss_buffer_t outputToken, uint32_t* retFlags);
-
-/*
-Shims the gss_accept_sec_context method.
-*/
-extern "C" uint32_t GssAcceptSecContext(uint32_t* minorStatus, gss_ctx_id_t* contextHandle, gss_cred_id_t acceptorCredHandle,
-                                        gss_buffer_t inputToken, gss_buffer_t outputToken, uint32_t* retFlags);
+                                            gss_name_t targetName, uint32_t reqFlags, uint8_t* inputBytes, int32_t inputLength, gss_buffer_t outputToken, uint32_t* retFlags);
 
 /*
 Shims the gss_delete_sec_context method.
@@ -73,14 +66,14 @@ extern "C" uint32_t GssDeleteSecContext(uint32_t* minorStatus, gss_ctx_id_t* con
 /*
 Shims the gss_wrap method.
 */
-extern "C" uint32_t GssWrap(uint32_t* minorStatus, gss_ctx_id_t contextHandle, bool isEncrypt, gss_buffer_t inputMessageBuffer,
-                            gss_buffer_t outputMessageBuffer);
+extern "C" uint32_t GssWrap(uint32_t* minorStatus, gss_ctx_id_t contextHandle, bool isEncrypt,
+                             uint8_t* inputBytes, int32_t offset, int32_t count, gss_buffer_t outputMessageBuffer);
 
 /*
 Shims the gss_unwrap method.
 */
-extern "C" uint32_t GssUnwrap(uint32_t* minorStatus, gss_ctx_id_t contextHandle, gss_buffer_t inputMessageBuffer,
-                              gss_buffer_t outputMessageBuffer);
+extern "C" uint32_t GssUnwrap(uint32_t* minorStatus, gss_ctx_id_t contextHandle,
+                               uint8_t* inputBytes, int32_t offset, int32_t count, gss_buffer_t outputMessageBuffer);
 
 /*
 Shims the gss_inquire_context method.
