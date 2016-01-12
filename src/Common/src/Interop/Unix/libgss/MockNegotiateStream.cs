@@ -107,6 +107,7 @@ namespace MockNegotiateStream
             SafeHandle inCred;
             var isNtlm = string.IsNullOrEmpty(target) || (protection == MockProtection.None);
             var package = isNtlm ? "NTLM" : "Negotiate";
+            MockLogging.PrintInfo(null, "isNtlm?: " + isNtlm);
             NegotiateStreamPal.AcquireCredentialsHandle(package, false, cred.UserName, cred.Password, cred.Domain, out inCred);
             //NegotiateStreamPal.AcquireDefaultCredential(string.Empty, false, out inCred);
             byte[] inBuf = null;

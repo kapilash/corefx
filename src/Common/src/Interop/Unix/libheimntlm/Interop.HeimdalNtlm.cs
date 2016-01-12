@@ -29,21 +29,18 @@ internal static partial class Interop
         internal static byte[] CreateAuthenticateMessage(uint flags, string username, string password, string domain,
             byte[] type2Data, int offset, int count, out SafeNtlmBufferHandle sessionKey)
         {
-            using (SafeNtlmBufferHandle inputData = new SafeNtlmBufferHandle(type2Data, offset, count))
+            using (SafeNtlmType3Handle outputMessage = new SafeNtlmType3Handle(type2Data, offset, count))
             {
-                using (SafeNtlmType3Handle outputMessage = new SafeNtlmType3Handle(inputData))
-                {
-                    using (
+                using (
                         SafeNtlmBufferHandle outputData = outputMessage.GetResponse(flags, username, password, domain,
                             out sessionKey))
+                {
+                    byte[] outputBuffer = new byte[(int) outputData.Length]; // Always return non-null
+                    if (outputBuffer.Length > 0)
                     {
-                        byte[] outputBuffer = new byte[(int) outputData.Length]; // Always return non-null
-                        if (outputBuffer.Length > 0)
-                        {
-                            Marshal.Copy(outputData.Value, outputBuffer, 0, outputBuffer.Length);
-                        }
-                        return outputBuffer;
+                        Marshal.Copy(outputData.Value, outputBuffer, 0, outputBuffer.Length);
                     }
+                    return outputBuffer;
                 }
             }
         }

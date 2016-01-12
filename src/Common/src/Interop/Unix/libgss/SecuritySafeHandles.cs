@@ -1,24 +1,49 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
 using Microsoft.Win32.SafeHandles;
-
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Security.Authentication;
-using System.Security.Authentication.ExtendedProtection;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 
 namespace System.Net.Security
 {
-
-
-    internal sealed class SafeFreeGssCredentials :SafeGssCredHandle
+#if DEBUG
+    internal class SafeFreeGssCredentials : DebugSafeHandle
     {
-        public SafeFreeGssCredentials(string username, string password, string domain) 
+#else
+    internal class SafeFreeGssCredentials : SafeHandle
+    {
+#endif
+        private readonly SafeGssCredHandle _credential;
+        public SafeGssCredHandle GssCredential
         {
-           Create(username, password, domain);
+            get { return _credential; }
+        }
+        public SafeFreeGssCredentials(string username, string password, string domain) : base(IntPtr.Zero, true)
+        {
+            _credential = SafeGssCredHandle.Create(username, password, domain);
+            bool ignore = false;
+            _credential.DangerousAddRef(ref ignore);
+            handle = _credential.DangerousGetHandle();
+        }
+
+        public override bool IsInvalid
+        {
+            get
+            {
+                return handle == IntPtr.Zero;
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _credential.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        protected override bool ReleaseHandle()
+        {
+            return true;
         }
     }
 
@@ -44,15 +69,16 @@ namespace System.Net.Security
             get { return _encryptAndSign; }
         }
 
-        public SafeDeleteGssContext(string targetName, uint flags) : base(IntPtr.Zero, true)
+        public SafeDeleteGssContext(string targetName, Interop.libgssapi.GssFlags flags) : base(IntPtr.Zero, true)
         {
             // In server case, targetName can be null or empty
             if (!String.IsNullOrEmpty(targetName))
             {
-             _targetName = SafeGssNameHandle.Create(targetName);
+ //               _targetName = SafeGssNameHandle.Create(targetName, false);
+                _targetName = SafeGssNameHandle.Create(targetName, true);
             }
 
-            _encryptAndSign = (flags & (uint)Interop.libgssapi.GssFlags.GSS_C_CONF_FLAG) != 0;
+            _encryptAndSign = (flags & Interop.libgssapi.GssFlags.GSS_C_CONF_FLAG) != 0;
         }
 
         public override bool IsInvalid
@@ -81,7 +107,9 @@ namespace System.Net.Security
             if ((null != _credential) && !_credential.IsInvalid)
             {
                 _credential.DangerousRelease();
+                _credential = null;
             }
+            // TODO: Fix up Dispose logic
             _context.Dispose();
             if (_targetName != null)
             {
@@ -90,5 +118,4 @@ namespace System.Net.Security
             return true;
         }
     }
-
 }
