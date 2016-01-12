@@ -142,4 +142,4 @@ EvpCipher
 Direct shim to EVP_Cipher.
 */
 extern "C"
-CryptoNative_EvpCipher(EVP_CIPHER_CTX* ctx, uint8_t* out, unsigned char *in, uint32_t inl);
+void CryptoNative_EvpCipher(EVP_CIPHER_CTX* ctx, unsigned char *out, const unsigned char *in, uint32_t inl);

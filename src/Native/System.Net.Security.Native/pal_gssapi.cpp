@@ -10,11 +10,7 @@ static_assert(PAL_GSS_CONTINUE_NEEDED == GSS_S_CONTINUE_NEEDED, "");
 
 static char gss_mech_value[] = "\x2b\x06\x01\x05\x05\x02";
 
-static char gss_ntlm_value[] = "\x2b\x06\x01\x04\x01\x82\x37\x02\x02\x0a";
-
 static gss_OID_desc gss_mech_spnego_OID_desc = {6, static_cast<void*>(gss_mech_value)};
-
-static gss_OID_desc gss_mech_ntlm_OID_desc = {10, static_cast<void*>(gss_ntlm_value)};
 
 static gss_OID gss_mech_spnego_OID = &gss_mech_spnego_OID_desc;
 
