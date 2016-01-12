@@ -16,7 +16,7 @@ internal static partial class Interop
 
             public Status MinorStatus
             {
-                get { return _minorStatus;  }
+                get { return _minorStatus; }
             }
 
             public GssApiException(string message) : base(message)
@@ -90,4 +90,5 @@ internal static partial class Interop
         }
     }
 #endif
-}
+        }
+

@@ -1,49 +1,24 @@
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
 using Microsoft.Win32.SafeHandles;
+
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Security.Authentication;
+using System.Security.Authentication.ExtendedProtection;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 
 namespace System.Net.Security
 {
-#if DEBUG
-    internal class SafeFreeGssCredentials : DebugSafeHandle
+
+
+    internal sealed class SafeFreeGssCredentials :SafeGssCredHandle
     {
-#else
-    internal class SafeFreeGssCredentials : SafeHandle
-    {
-#endif
-        private readonly SafeGssCredHandle _credential;
-        public SafeGssCredHandle GssCredential
+        public SafeFreeGssCredentials(string username, string password, string domain) 
         {
-            get { return _credential; }
-        }
-        public SafeFreeGssCredentials(string username, string password, string domain) : base(IntPtr.Zero, true)
-        {
-            _credential = SafeGssCredHandle.Create(username, password, domain);
-            bool ignore = false;
-            _credential.DangerousAddRef(ref ignore);
-            handle = _credential.DangerousGetHandle();
-        }
-
-        public override bool IsInvalid
-        {
-            get
-            {
-                return handle == IntPtr.Zero;
-            }
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _credential.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-
-        protected override bool ReleaseHandle()
-        {
-            return true;
+           Create(username, password, domain);
         }
     }
 
@@ -69,15 +44,15 @@ namespace System.Net.Security
             get { return _encryptAndSign; }
         }
 
-        public SafeDeleteGssContext(string targetName, Interop.libgssapi.GssFlags flags) : base(IntPtr.Zero, true)
+        public SafeDeleteGssContext(string targetName, uint flags) : base(IntPtr.Zero, true)
         {
             // In server case, targetName can be null or empty
             if (!String.IsNullOrEmpty(targetName))
             {
-                _targetName = SafeGssNameHandle.Create(targetName, false);
+             _targetName = SafeGssNameHandle.Create(targetName);
             }
 
-            _encryptAndSign = (flags & Interop.libgssapi.GssFlags.GSS_C_CONF_FLAG) != 0;
+            _encryptAndSign = (flags & (uint)Interop.libgssapi.GssFlags.GSS_C_CONF_FLAG) != 0;
         }
 
         public override bool IsInvalid
@@ -106,9 +81,7 @@ namespace System.Net.Security
             if ((null != _credential) && !_credential.IsInvalid)
             {
                 _credential.DangerousRelease();
-                _credential = null;
             }
-            // TODO: Fix up Dispose logic
             _context.Dispose();
             if (_targetName != null)
             {
@@ -118,114 +91,4 @@ namespace System.Net.Security
         }
     }
 
-    #region // TODO (Issue #3717) : Implement NTLM
-    internal sealed class SafeFreeNtlmCredentials : SafeFreeGssCredentials
-    {
-        public SafeFreeNtlmCredentials(string username, string password, string domain) : base(username, password, domain)
-        {
-        }
-    }
-
-    internal sealed class SafeNtlmBufferHandle : SafeHandle
-    {
-        public SafeNtlmBufferHandle() : base(IntPtr.Zero, true) { }
-        public override bool IsInvalid
-        {
-            get
-            {
-                return true;
-            }
-        }
-        protected override bool ReleaseHandle()
-        {
-            return false;
-        }
-    }
-
-    internal sealed class SafeDeleteNtlmContext : SafeHandle
-    {
-        private readonly SafeFreeNtlmCredentials _credential;
-        private readonly uint _flags;
-
-        public uint Flags
-        {
-            get { return _flags; }
-        }
-
-        public SafeDeleteNtlmContext(SafeFreeNtlmCredentials credential, uint flags)
-            : base(IntPtr.Zero, true)
-        {
-            bool ignore = false;
-            credential.DangerousAddRef(ref ignore);
-            _credential = credential;
-            _flags = flags;
-        }
-
-        public override bool IsInvalid
-        {
-            get { return (null == _credential) || _credential.IsInvalid; }
-        }
-
-        public void SetKeys(SafeNtlmBufferHandle sessionKey)
-        {
-            //Interop.HeimdalNtlm.CreateKeys(sessionKey, out _serverSignKey, out _serverSealKey, out _clientSignKey, out _clientSealKey);
-        }
-
-        public byte[] MakeSignature(bool isSend, byte[] buffer, int offset, int count)
-        {
-#if false
-            if (isSend)
-            {
-                return _clientSignKey.Sign(_clientSealKey, buffer, offset, count);
-            }
-            else
-            {
-                return _serverSignKey.Sign(_serverSealKey, buffer, offset, count);
-            }
-#else
-            return null;
-#endif
-        }
-
-        public byte[] EncryptOrDecrypt(bool isEncrypt, byte[] buffer, int offset, int count)
-        {
-#if false
-            if (isEncrypt)
-            {
-                return _clientSealKey.SealOrUnseal(true, buffer, offset, count);
-            }
-            else
-            {
-                return _serverSealKey.SealOrUnseal(false, buffer, offset, count);
-            }
-#else
-            return null;
-#endif
-        }
-
-        protected override bool ReleaseHandle()
-        {
-            _credential.DangerousRelease();
-#if false
-            if ((null != _clientSignKey) && !_clientSignKey.IsInvalid)
-            {
-                _clientSignKey.Dispose();
-            }
-            if ((null != _clientSealKey) && !_clientSealKey.IsInvalid)
-            {
-                _clientSealKey.Dispose();
-            }
-            if ((null != _serverSignKey) && !_serverSignKey.IsInvalid)
-            {
-                _serverSignKey.Dispose();
-            }
-            if ((null != _serverSealKey) && !_serverSealKey.IsInvalid)
-            {
-                _serverSealKey.Dispose();
-            }
-#endif
-            return true;
-        }
-    }
-    #endregion
 }

@@ -15,7 +15,7 @@ internal static partial class Interop
             ref SafeGssContextHandle context,
             SafeGssCredHandle credential,
             SafeGssNameHandle targetName,
-            Interop.libgssapi.GssFlags inFlags,
+            uint inFlags,
             byte[] buffer,
             out byte[] outputBuffer,
             out uint outFlags)
@@ -28,21 +28,34 @@ internal static partial class Interop
                 context = new SafeGssContextHandle();
             }
 
+            using (SafeGssBufferHandle inputToken = new SafeGssBufferHandle(buffer))
             using (SafeGssBufferHandle outputToken = new SafeGssBufferHandle())
             {
                 libgssapi.Status status;
                 libgssapi.Status minorStatus;
 
-                status = libgssapi.GssInitSecContextSpNego(
-				    out minorStatus,
+                if (targetName == null)
+                {
+                    status = libgssapi.GssAcceptSecContext(
+                                    out minorStatus,
+                                    ref context,
+                                    credential,
+                                    inputToken,
+                                    outputToken,
+                                    out outFlags);
+                }
+                else
+                {
+                    status = libgssapi.GssInitSecContextSpNego(
+                                    out minorStatus,
                                     credential,
                                     ref context,
                                     targetName,
-                                    (uint)inFlags,
-                                    buffer,
-                                    (buffer == null) ? 0 : buffer.Length,
+                                    inFlags,
+                                    inputToken,
                                     outputToken,
                                     out outFlags);
+                }
 
                 if ((status != libgssapi.Status.GSS_S_COMPLETE) && (status != libgssapi.Status.GSS_S_CONTINUE_NEEDED))
                 {
@@ -71,10 +84,11 @@ internal static partial class Interop
             Debug.Assert((offset >= 0) && (offset < buffer.Length), "Invalid input offset passed to Encrypt");
             Debug.Assert((count > 0) && (count <= (buffer.Length - offset)), "Invalid input count passed to Encrypt");
 
+            using (SafeGssBufferHandle inputToken = new SafeGssBufferHandle(buffer, offset, count))
             using (SafeGssBufferHandle outputToken = new SafeGssBufferHandle())
             {
                 libgssapi.Status minorStatus;
-		libgssapi.Status status = libgssapi.GssWrap(out minorStatus, context, encrypt, buffer, offset, count, outputToken);
+                libgssapi.Status status = libgssapi.GssWrap(out minorStatus, context, encrypt, inputToken, outputToken);
                 if (status != libgssapi.Status.GSS_S_COMPLETE)
                 {
                     throw libgssapi.GssApiException.Create(SR.net_context_wrap_failed, status, minorStatus);
@@ -98,10 +112,11 @@ internal static partial class Interop
             Debug.Assert((offset >= 0) && (offset < buffer.Length), "Invalid input offset passed to Decrypt");
             Debug.Assert((count > 0) && (count <= (buffer.Length - offset)), "Invalid input count passed to Decrypt");
 
+            using (SafeGssBufferHandle inputToken = new SafeGssBufferHandle(buffer, offset, count))
             using (SafeGssBufferHandle outputToken = new SafeGssBufferHandle())
             {
                 libgssapi.Status minorStatus;
-		libgssapi.Status status = libgssapi.GssUnwrap(out minorStatus, context, buffer, offset, count, outputToken);
+                libgssapi.Status status = libgssapi.GssUnwrap(out minorStatus, context, inputToken, outputToken);
                 if (status != libgssapi.Status.GSS_S_COMPLETE)
                 {
                     throw libgssapi.GssApiException.Create(SR.net_context_unwrap_failed, status, minorStatus);
@@ -135,7 +150,7 @@ internal static partial class Interop
             {
                 throw libgssapi.GssApiException.Create(status, minorStatus);
             }
-           
+
             using (sourceName)
             using (SafeGssBufferHandle outputBuffer = new SafeGssBufferHandle())
             {
@@ -154,5 +169,4 @@ internal static partial class Interop
         }
     }
 }
-
 

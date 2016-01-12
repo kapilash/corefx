@@ -25,10 +25,9 @@ internal static partial class Interop
             SafeGssBufferHandle statusString);
 
         [DllImport(Interop.Libraries.SecurityNative, CharSet = CharSet.Ansi)]
-        internal static extern Status GssImportName(
+        internal static extern Status GssImportNtUserName(
             out Status minorStatus,
             string inputName,
-	    bool isUser,
             out SafeGssNameHandle outputName);
 
         [DllImport(Interop.Libraries.SecurityNative)]
@@ -63,10 +62,9 @@ internal static partial class Interop
             ref SafeGssContextHandle contextHandle,
             SafeGssNameHandle targetName,
             uint reqFlags,
-	    byte[] inputBytes,
-	    int inputLength,
+            SafeGssBufferHandle inputToken,
             SafeGssBufferHandle outputToken,
-	    out uint retFlags);
+            out uint retFlags);
 
         [DllImport(Interop.Libraries.SecurityNative)]
         internal static extern Status GssAcceptSecContext(
@@ -87,18 +85,14 @@ internal static partial class Interop
             out Status minorStatus,
             SafeGssContextHandle contextHandle,
             bool isEncrypt,
-	    byte[] inputBytes,
-            int offset,
-            int count,
+            SafeGssBufferHandle inputMessageBuffer,
             SafeGssBufferHandle outputMessageBuffer);
 
         [DllImport(Interop.Libraries.SecurityNative)]
         internal static extern Status GssUnwrap(
             out Status minorStatus,
             SafeGssContextHandle contextHandle,
-	    byte[] inputBytes,
-	    int offset,
-	    int count,
+            SafeGssBufferHandle inputMessageBuffer,
             SafeGssBufferHandle outputMessageBuffer);
 
         [DllImport(Interop.Libraries.SecurityNative)]
@@ -149,11 +143,12 @@ internal static partial class Interop
 namespace Microsoft.Win32.SafeHandles
 {
     /// <summary>
-    /// Wrapper around an output gss_buffer_desc*
+    /// Wrapper around a gss_buffer_desc*
     /// </summary>
     internal sealed class SafeGssBufferHandle : SafeHandle
     {
         private GCHandle _gch;
+        private GCHandle _arrayGcHandle = new GCHandle();
 
         // Return the buffer size
         public int Length
@@ -181,12 +176,32 @@ namespace Microsoft.Win32.SafeHandles
             }
         }
 
-        public SafeGssBufferHandle() : base(IntPtr.Zero, true)
+        public SafeGssBufferHandle()
+            : this(0, IntPtr.Zero)
+        {
+        }
+
+        public SafeGssBufferHandle(byte[] data)
+            : this(data, 0, (data == null) ? 0 : data.Length)
+        {
+        }
+
+        public SafeGssBufferHandle(byte[] data, int offset, int count)
+            : this(count, IntPtr.Zero)
+        {
+            if (data == null) return;
+            _arrayGcHandle = GCHandle.Alloc(data, GCHandleType.Pinned);
+            IntPtr address = new IntPtr(_arrayGcHandle.AddrOfPinnedObject().ToInt64() + offset);
+            Marshal.WriteIntPtr(handle, (int)Marshal.OffsetOf<Interop.libgssapi.gss_buffer_desc>("value"), address);
+        }
+
+        private SafeGssBufferHandle(int length, IntPtr ptrValue)
+            : base(IntPtr.Zero, true)
         {
             Interop.libgssapi.gss_buffer_desc buffer = new Interop.libgssapi.gss_buffer_desc
             {
-                length = (size_t)0,
-                value = IntPtr.Zero,
+                length = (size_t)length,
+                value = ptrValue,
             };
 
             _gch = GCHandle.Alloc(buffer, GCHandleType.Pinned);
@@ -203,14 +218,19 @@ namespace Microsoft.Win32.SafeHandles
         // it is owned by libgssapi
         protected override bool ReleaseHandle()
         {
-            Interop.libgssapi.gss_buffer_desc buffer = (Interop.libgssapi.gss_buffer_desc) _gch.Target;
+            Interop.libgssapi.gss_buffer_desc buffer = (Interop.libgssapi.gss_buffer_desc)_gch.Target;
             if (buffer.value != IntPtr.Zero)
             {
-
-		Interop.libgssapi.Status minorStatus;
-		Interop.libgssapi.Status status = Interop.libgssapi.GssReleaseBuffer(out minorStatus, ref buffer);
-		Interop.libgssapi.GssApiException.AssertOrThrowIfError("GssReleaseBuffer failed", status, minorStatus);
-
+                if (_arrayGcHandle.IsAllocated)
+                {
+                    _arrayGcHandle.Free();
+                }
+                else
+                {
+                    Interop.libgssapi.Status minorStatus;
+                    Interop.libgssapi.Status status = Interop.libgssapi.GssReleaseBuffer(out minorStatus, ref buffer);
+                    Interop.libgssapi.GssApiException.AssertOrThrowIfError("GssReleaseBuffer failed", status, minorStatus);
+                }
             }
             _gch.Free();
             SetHandle(IntPtr.Zero);
@@ -223,12 +243,12 @@ namespace Microsoft.Win32.SafeHandles
     /// </summary>
     internal sealed class SafeGssNameHandle : SafeHandle
     {
-        public static SafeGssNameHandle Create(string name, bool isUser)
+        public static SafeGssNameHandle Create(string name)
         {
             Debug.Assert(!String.IsNullOrEmpty(name), "Invalid name passed to SafeGssNameHandle create");
             SafeGssNameHandle retHandle;
             Interop.libgssapi.Status minorStatus;
-	    Interop.libgssapi.Status status = Interop.libgssapi.GssImportName(out minorStatus, name, isUser, out retHandle);
+            Interop.libgssapi.Status status = Interop.libgssapi.GssImportNtUserName(out minorStatus, name, out retHandle);
             if (status != Interop.libgssapi.Status.GSS_S_COMPLETE)
             {
                 throw Interop.libgssapi.GssApiException.Create(status, minorStatus);
@@ -269,7 +289,7 @@ namespace Microsoft.Win32.SafeHandles
             // Empty username is OK if Kerberos ticket was already obtained
             if (!String.IsNullOrEmpty(username))
             {
-                using (SafeGssNameHandle userHandle = SafeGssNameHandle.Create(username, true))
+                using (SafeGssNameHandle userHandle = SafeGssNameHandle.Create(username))
                 {
                     Interop.libgssapi.Status status;
                     Interop.libgssapi.Status minorStatus;
@@ -292,7 +312,7 @@ namespace Microsoft.Win32.SafeHandles
             return retHandle;
         }
 
-        private SafeGssCredHandle()
+        protected SafeGssCredHandle()
             : base(IntPtr.Zero, true)
         {
         }
@@ -334,5 +354,4 @@ namespace Microsoft.Win32.SafeHandles
         }
     }
 }
-
 
