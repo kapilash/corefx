@@ -8,7 +8,7 @@ if (APPLE)
    find_library(LIBGSS NAMES GSS)
    add_definitions(-DGSSFW)
 else()
-   find_library(LIBGSS NAMES libgssapi_krb5)
+   find_library(LIBGSS NAMES gssapi_krb5)
 endif()
 
 if(LIBGSS STREQUAL LIBGSS-NOTFOUND)
