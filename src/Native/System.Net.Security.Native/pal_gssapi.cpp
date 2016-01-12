@@ -43,7 +43,7 @@ extern "C" uint32_t GssDisplayStatus(uint32_t* minorStatus, uint32_t statusValue
 extern "C" uint32_t GssImportName(uint32_t* minorStatus, char* inputName, bool isUser, gss_name_t* outputName)
 {
     gss_buffer_desc inputNameBuffer {strlen(inputName), inputName};
-    gss_OID nameType = isUser ? GSS_C_NT_USER_NAME : GSS_KRB5_NT_PRINCIPAL_NAME;
+    const gss_OID nameType = isUser ? GSS_C_NT_USER_NAME : GSS_KRB5_NT_PRINCIPAL_NAME;
     return gss_import_name(minorStatus, &inputNameBuffer, nameType, outputName);
 }
 
