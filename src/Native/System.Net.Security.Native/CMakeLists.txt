@@ -12,7 +12,7 @@ else()
 endif()
 
 if(LIBGSS STREQUAL LIBGSS-NOTFOUND)
-    message(SEND_ERROR "!!! Cannot find libkrb5-dev and System.Net.Security.Native cannot build without it. Try installing libkrb5-dev (or the appropriate package for your platform) !!!")
+    message(SEND_ERROR "!!! Cannot find libgssapi_krb5 and System.Net.Security.Native cannot build without it. Try installing libgssapi_krb5 (or the appropriate package for your platform) !!!")
     return()
 endif()
 
