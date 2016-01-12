@@ -16,15 +16,11 @@ static gss_OID_desc gss_mech_spnego_OID_desc = {6, static_cast<void*>(gss_mech_v
 
 static gss_OID_desc gss_mech_ntlm_OID_desc = {10, static_cast<void*>(gss_ntlm_value)};
 
-// static gss_OID gss_mech_spnego_OID = &gss_mech_spnego_OID_desc;
+static gss_OID gss_mech_spnego_OID = &gss_mech_spnego_OID_desc;
 
 static gss_OID_set_desc gss_mech_spnego_OID_set_desc = {1, &gss_mech_spnego_OID_desc};
 
 static gss_OID_set gss_mech_spnego_OID_set = &gss_mech_spnego_OID_set_desc;
-
-static gss_OID gss_mech_ntlm_OID = &gss_mech_ntlm_OID_desc;
-
-
 
 
 extern "C" uint32_t GssAcquireCredSpNego(uint32_t* minorStatus, gss_name_t desiredName, bool isInitiate, gss_cred_id_t* outputCredHandle)
@@ -60,7 +56,7 @@ extern "C" uint32_t GssInitSecContextSpNego(uint32_t* minorStatus, gss_cred_id_t
                                             gss_name_t targetName, uint32_t reqFlags, uint8_t* inputBytes, int32_t inputLength, gss_buffer_t outputToken, uint32_t* retFlags)
 {
     gss_buffer_desc inputToken {static_cast<size_t>(inputLength), inputBytes};
-    return gss_init_sec_context(minorStatus, claimantCredHandle, contextHandle, targetName, gss_mech_ntlm_OID, reqFlags,
+    return gss_init_sec_context(minorStatus, claimantCredHandle, contextHandle, targetName, gss_mech_spnego_OID, reqFlags,
                                 0, GSS_C_NO_CHANNEL_BINDINGS, &inputToken, NULL, outputToken, retFlags, NULL);
 }
 

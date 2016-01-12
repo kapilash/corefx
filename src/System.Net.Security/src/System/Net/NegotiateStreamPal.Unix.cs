@@ -31,8 +31,7 @@ namespace System.Net
             }
             else if (string.Equals(moduleName, "NTLM"))
             {
-                outCredential = new SafeFreeGssCredentials(username, password, domain);
-//                outCredential = new SafeFreeNtlmCredentials(username, password, domain);
+                outCredential = new SafeFreeNtlmCredentials(username, password, domain);
             }
             else
             {
@@ -77,11 +76,9 @@ namespace System.Net
 
             if (IsNtlmClient(targetName, credential))
             {
-//                return InitializeNtlmSecurityContext((SafeFreeNtlmCredentials)credential, ref context, inFlags, inputBuffers[0], outputBuffer);
+                return InitializeNtlmSecurityContext((SafeFreeNtlmCredentials)credential, ref context, inFlags, inputBuffers[0], outputBuffer);
             }
-            var userName = "testuser@skapila09";
-            return EstablishSecurityContext((SafeFreeGssCredentials)credential, ref context, userName, (Interop.libgssapi.GssFlags)inFlags, inputBuffers[0], outputBuffer, ref outFlags);
-            //  return EstablishSecurityContext((SafeFreeGssCredentials)credential, ref context, targetName, (Interop.libgssapi.GssFlags)inFlags, inputBuffers[0], outputBuffer, ref outFlags);
+            return EstablishSecurityContext((SafeFreeGssCredentials)credential, ref context, targetName, (Interop.libgssapi.GssFlags)inFlags, inputBuffers[0], outputBuffer, ref outFlags);
         }
 
         public static int Encrypt(SafeHandle securityContext, byte[] buffer, int offset, int count, ref byte[] output, uint sequenceNumber)
@@ -182,6 +179,7 @@ namespace System.Net
             SecurityBuffer inputBuffer,
             SecurityBuffer outputBuffer)
         {
+#if false
             SecurityStatusPal retVal;
 
             if (null == context)
@@ -203,6 +201,9 @@ namespace System.Net
                 retVal = SecurityStatusPal.OK;
             }
             outputBuffer.size = outputBuffer.token.Length;
+#else
+            var retVal = SecurityStatusPal.Unsupported;
+#endif
             return retVal;
         }
 
