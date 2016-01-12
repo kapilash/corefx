@@ -8,6 +8,7 @@
 #include <GSS/GSS.h>
 #else
 #include <gssapi/gssapi_ext.h>
+#include <gssapi/gssapi_krb5.h>
 #endif
 
 
