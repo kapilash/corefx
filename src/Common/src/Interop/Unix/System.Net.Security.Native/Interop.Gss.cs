@@ -44,7 +44,7 @@ internal static partial class Interop
             out SafeGssCredHandle outputCredHandle);
 
         [DllImport(Interop.Libraries.SecurityNative, CharSet = CharSet.Ansi)]
-        internal static extern Status GssAcquireCredWithPasswordSpNego(
+        internal static extern Status GssAcquireCredWithPassword(
             out Status minorStatus,
             SafeGssNameHandle desiredName,
             string password,
@@ -57,10 +57,11 @@ internal static partial class Interop
             ref IntPtr credHandle);
 
         [DllImport(Interop.Libraries.SecurityNative)]
-        internal static extern Status GssInitSecContextSpNego(
+        internal static extern Status GssInitSecContext(
             out Status minorStatus,
             SafeGssCredHandle initiatorCredHandle,
             ref SafeGssContextHandle contextHandle,
+            bool isNtlm,
             SafeGssNameHandle targetName,
             uint reqFlags,
 	    byte[] inputBytes,
@@ -279,7 +280,7 @@ namespace Microsoft.Win32.SafeHandles
                     }
                     else
                     {
-                        status = Interop.libgssapi.GssAcquireCredWithPasswordSpNego(out minorStatus, userHandle, password, true, out retHandle);
+                        status = Interop.libgssapi.GssAcquireCredWithPassword(out minorStatus, userHandle, password, true, out retHandle);
                     }
 
                     if (status != Interop.libgssapi.Status.GSS_S_COMPLETE)

@@ -48,11 +48,17 @@ extern "C" uint32_t GssImportName(uint32_t* minorStatus, char* inputName, bool i
     return gss_import_name(minorStatus, &inputNameBuffer, nameType, outputName);
 }
 
-extern "C" uint32_t GssInitSecContextSpNego(uint32_t* minorStatus, gss_cred_id_t claimantCredHandle, gss_ctx_id_t* contextHandle,
-                                            gss_name_t targetName, uint32_t reqFlags, uint8_t* inputBytes, int32_t inputLength, gss_buffer_t outputToken, uint32_t* retFlags)
+extern "C" uint32_t GssInitSecContext(uint32_t* minorStatus, gss_cred_id_t claimantCredHandle, gss_ctx_id_t* contextHandle,
+                                            bool isNtlm, gss_name_t targetName, uint32_t reqFlags, uint8_t* inputBytes, int32_t inputLength, gss_buffer_t outputToken, uint32_t* retFlags)
 {
+    #ifdef GSSFW
+    gss_OID desiredMech = isNtlm ? const_cast<gss_OID>(GSS_NTLM_MECHANISM) : const_cast<gss_OID>(GSS_SPNEGO_MECHANISM);
+    #else
+    assert(!isNtlm && "NTLM not supported by MIT libgssapi_krb5");
+    gss_OID desiredMech = gss_mech_spnego_OID;
+    #endif
     gss_buffer_desc inputToken {static_cast<size_t>(inputLength), inputBytes};
-    return gss_init_sec_context(minorStatus, claimantCredHandle, contextHandle, targetName, gss_mech_spnego_OID, reqFlags,
+    return gss_init_sec_context(minorStatus, claimantCredHandle, contextHandle, targetName, desiredMech, reqFlags,
                                 0, GSS_C_NO_CHANNEL_BINDINGS, &inputToken, NULL, outputToken, retFlags, NULL);
 }
 
@@ -94,17 +100,12 @@ extern "C" uint32_t GssUnwrap(uint32_t* minorStatus, gss_ctx_id_t contextHandle,
     return gss_unwrap(minorStatus, contextHandle, &inputMessageBuffer, outputMessageBuffer, NULL, NULL);
 }
 
-extern "C" uint32_t GssAcquireCredWithPasswordSpNego(uint32_t* minorStatus, const gss_name_t desiredName, char* password, bool isInitiate,
+extern "C" uint32_t GssAcquireCredWithPassword(uint32_t* minorStatus, const gss_name_t desiredName, char* password, bool isInitiate,
                                                      gss_cred_id_t* outputCredHandle)
 {
     gss_cred_usage_t credUsage = isInitiate ? GSS_C_INITIATE : GSS_C_ACCEPT;
     gss_buffer_desc passwordBuffer {strlen(password), password};
 
-#ifdef GSSFW
-        return gss_acquire_cred_with_password(minorStatus, desiredName, &passwordBuffer, 0, NULL,
-                                          credUsage, outputCredHandle, NULL, NULL);
-#else
-    return gss_acquire_cred_with_password(minorStatus, desiredName, &passwordBuffer, 0, gss_mech_spnego_OID_set,
-                                          credUsage, outputCredHandle, NULL, NULL);
-#endif
+    return gss_acquire_cred_with_password(minorStatus, desiredName, &passwordBuffer, 0, NULL,
+                                      credUsage, outputCredHandle, NULL, NULL);
 }

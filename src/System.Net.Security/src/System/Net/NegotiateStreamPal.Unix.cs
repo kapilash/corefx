@@ -22,6 +22,7 @@ namespace System.Net
             string domain,
             out SafeHandle outCredential)
         {
+                MockUtils.MockLogging.PrintInfo("vijayko", "Enterd ACQUIRECRED " + moduleName + " " + username + " " + password + " " + domain);
             if (isInBoundCred || string.IsNullOrEmpty(username))
             {
                 // In server case, only the keytab file (eg. /etc/krb5.keytab) is used
@@ -55,7 +56,7 @@ namespace System.Net
             SecurityBuffer outputBuffer,
             ref uint outFlags)
         {
-            return EstablishSecurityContext((SafeFreeGssCredentials)credential, ref context, string.Empty, (Interop.libgssapi.GssFlags)inFlags, inputBuffer, outputBuffer, ref outFlags);
+            return EstablishSecurityContext((SafeFreeGssCredentials)credential, ref context, false, string.Empty, (Interop.libgssapi.GssFlags)inFlags, inputBuffer, outputBuffer, ref outFlags);
         }
 
         public static SecurityStatusPal InitializeSecurityContext(
@@ -78,7 +79,7 @@ namespace System.Net
             {
                 return InitializeNtlmSecurityContext((SafeFreeNtlmCredentials)credential, ref context, inFlags, inputBuffers[0], outputBuffer);
             }
-            return EstablishSecurityContext((SafeFreeGssCredentials)credential, ref context, targetName, (Interop.libgssapi.GssFlags)inFlags, inputBuffers[0], outputBuffer, ref outFlags);
+            return EstablishSecurityContext((SafeFreeGssCredentials)credential, ref context, false, targetName, (Interop.libgssapi.GssFlags)inFlags, inputBuffers[0], outputBuffer, ref outFlags);
         }
 
         public static int Encrypt(SafeHandle securityContext, byte[] buffer, int offset, int count, ref byte[] output, uint sequenceNumber)
@@ -179,13 +180,13 @@ namespace System.Net
             SecurityBuffer inputBuffer,
             SecurityBuffer outputBuffer)
         {
-#if false
             SecurityStatusPal retVal;
 
             if (null == context)
             {
                 context = new SafeDeleteNtlmContext(credential, inFlags);
                 outputBuffer.token = Interop.HeimdalNtlm.CreateNegotiateMessage(inFlags);
+                MockUtils.MockLogging.PrintInfo("vijayko", "Returned from CreateNEgo " + outputBuffer.token.Length);
                 retVal = SecurityStatusPal.ContinueNeeded;
             }
             else
@@ -201,15 +202,13 @@ namespace System.Net
                 retVal = SecurityStatusPal.OK;
             }
             outputBuffer.size = outputBuffer.token.Length;
-#else
-            var retVal = SecurityStatusPal.Unsupported;
-#endif
             return retVal;
         }
 
         private static SecurityStatusPal EstablishSecurityContext(
             SafeFreeGssCredentials credential,
             ref SafeHandle context,
+            bool isNtlm,
             string targetName,
             Interop.libgssapi.GssFlags inFlags,
             SecurityBuffer inputBuffer,
@@ -228,6 +227,7 @@ namespace System.Net
                 bool done = Interop.GssApi.EstablishSecurityContext(
                                   ref contextHandle,
                                   credential.GssCredential,
+                                  isNtlm,
                                   gssContext.TargetName,
                                   inFlags,
                                   inputBuffer.token,

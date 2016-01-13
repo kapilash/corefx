@@ -14,56 +14,47 @@ internal static partial class Interop
     internal static partial class libheimntlm
     {
         [DllImport(Interop.Libraries.SecurityNative)]
-        internal static extern int HeimNtlmFreeBuf(ntlm_buf data);
+        internal static extern int HeimNtlmFreeBuf(ref ntlm_buf data);
 
         [DllImport(Interop.Libraries.SecurityNative)]
         internal static extern int HeimNtlmEncodeType1(uint flags, SafeNtlmBufferHandle data);
 
         [DllImport(Interop.Libraries.SecurityNative)]
-        internal static extern int HeimNtlmDecodeType2(byte[] data, int offset, int count, SafeNtlmType2Handle type2);
+        internal static extern int HeimNtlmDecodeType2(byte[] data, int offset, int count, out SafeNtlmType2Handle type2Handle);
 
         [DllImport(Interop.Libraries.SecurityNative)]
-        internal static extern int HeimNtlmFreeType2(IntPtr type2);
+        internal static extern int HeimNtlmFreeType2(IntPtr type2Handle);
 
         [DllImport(Interop.Libraries.SecurityNative, CharSet = CharSet.Ansi)]
-        internal static extern unsafe int HeimNtlmNtKey(string password, SafeNtlmBufferHandle key);
+        internal static extern int HeimNtlmNtKey(string password, SafeNtlmBufferHandle key);
 
         [DllImport(Interop.Libraries.SecurityNative, CharSet = CharSet.Ansi)]
-        internal static extern unsafe int HeimNtlmCalculateLm2(
+        internal static extern int HeimNtlmCalculateResponse(
+            bool isLM,
             IntPtr key,
-            size_t len,
+            size_t keylen,
+            SafeNtlmType2Handle type2Handle,
             string username,
             string target,
-            SafeNtlmType2Handle type2,
-            byte[] ntlmv2,
+            byte[] baseSessionKey,
+            int baseSessionKeyLen,
             SafeNtlmBufferHandle answer);
 
-        [DllImport(Interop.Libraries.SecurityNative)]
-        internal static extern unsafe int HeimNtlmCalculateNtlm2(
-              IntPtr key,
-              size_t len,
-              SafeNtlmType2Handle type2,
-              SafeNtlmBufferHandle answer,
-              string username,
-              string target,
-              byte[] ntlmv2
-              );
-
         [DllImport(Interop.Libraries.SecurityNative, CharSet = CharSet.Ansi)]
-        internal static extern unsafe int CreateType3Message(
-             string username,
-             string domian,
-             uint flags,
-             SafeNtlmBufferHandle lm,
-             SafeNtlmBufferHandle ntlm,
-             SafeNtlmType2Handle type2Handle,
-             IntPtr key,
-             size_t len,
-             SafeNtlmBufferHandle session,
-             byte [] baseSessionKey,
-             uint baseSeesionKeyLen,
-             SafeNtlmBufferHandle outputData
-             );
+        internal static extern int CreateType3Message(
+            IntPtr key,
+            size_t keylen,
+            SafeNtlmType2Handle type2Handle,
+            string username,
+            string domain,
+            uint flags,
+            SafeNtlmBufferHandle lmResponse,
+            SafeNtlmBufferHandle ntlmResponse,
+            byte [] baseSessionKey,
+            int baseSessionKeyLen,
+            SafeNtlmBufferHandle sessionKey,
+            SafeNtlmBufferHandle data
+            );
 
         internal partial class NtlmFlags
         {
@@ -108,7 +99,7 @@ internal static partial class Interop
         {
             byte[] output = new byte[inputlen];
 
-            Crypto.EvpCipher(ref ctx, output, input, output.Length);
+            Crypto.EvpCipher(ctx, output, input, output.Length);
             return output;
         }
 
@@ -192,8 +183,9 @@ namespace Microsoft.Win32.SafeHandles
         // it is a by-product of some other allocation
         protected override bool ReleaseHandle()
         {
+            MockUtils.MockLogging.PrintInfo("vijayko", "RELEASE BUFFER: " + Length + " " + Value.ToString("x8"));
             Interop.libheimntlm.ntlm_buf buffer = (Interop.libheimntlm.ntlm_buf) _gch.Target;
-            Interop.libheimntlm.HeimNtlmFreeBuf(buffer);
+            Interop.libheimntlm.HeimNtlmFreeBuf(ref buffer);
             _gch.Free();
             SetHandle(IntPtr.Zero);
             return true;
@@ -259,6 +251,7 @@ namespace Microsoft.Win32.SafeHandles
 
         public byte[] Sign(SafeNtlmKeyHandle sealingKey, byte[] buffer, int offset, int count)
         {
+            MockUtils.MockLogging.PrintInfo("vijayko", "Entered signing");
             Debug.Assert(!_isSealingKey, "Cannot sign with sealing key");
             byte[] output = new byte[16];
             Array.Clear(output, 0, output.Length);
@@ -272,6 +265,7 @@ namespace Microsoft.Win32.SafeHandles
                         MarshalUint(outPtr + 12, _sequenceNumber);
                         hash = Interop.libheimntlm.HMACDigest((byte*) handle.ToPointer(), (int)_digestLength, (bytePtr + offset), count,
                                 outPtr + 12, 4);
+            MockUtils.MockLogging.PrintInfo("vijayko", "Afeter HMACDigest");
                         _sequenceNumber++;
                     }
             }
@@ -284,6 +278,7 @@ namespace Microsoft.Win32.SafeHandles
                 byte[] cipher = sealingKey.SealOrUnseal(true, hash, 0, 8);
                 Array.Copy(cipher, 0, output, 4, cipher.Length);
             }
+            MockUtils.MockLogging.PrintInfo("vijayko", "Afeter copy: " + _sequenceNumber);
             return output;
         }
 
@@ -297,7 +292,9 @@ namespace Microsoft.Win32.SafeHandles
                     // Since RC4 is XOR-based, encrypt or decrypt is relative to input data
                     byte[] output = new byte[count];
 
-                    Crypto.EvpCipher(ref _cipherContext, output, (bytePtr + offset), count);
+            MockUtils.MockLogging.PrintInfo("vijayko", "BEFORE EvpCipher " + count);
+                    Crypto.EvpCipher(_cipherContext, output, (bytePtr + offset), count);
+            MockUtils.MockLogging.PrintInfo("vijayko", "AFTER EvpCipher " + count);
                     return  output;
 
                 }
@@ -319,11 +316,6 @@ namespace Microsoft.Win32.SafeHandles
     /// </summary>
     internal sealed class SafeNtlmType2Handle : SafeHandle
     {
-        public SafeNtlmType2Handle() : base(IntPtr.Zero, true)
-        {
-            //do something
-        }
-
         public override bool IsInvalid
         {
             get { return handle == IntPtr.Zero; }
@@ -335,6 +327,10 @@ namespace Microsoft.Win32.SafeHandles
             SetHandle(IntPtr.Zero);
             return true;
         }
+
+        private SafeNtlmType2Handle() : base(IntPtr.Zero, true)
+        {
+        }
     }
 
     /// <summary>
@@ -342,10 +338,12 @@ namespace Microsoft.Win32.SafeHandles
     /// </summary>
     internal sealed class SafeNtlmType3Handle : SafeHandle
     {
-        SafeNtlmType2Handle type2Handle = new SafeNtlmType2Handle();
+        private readonly SafeNtlmType2Handle _type2Handle;
         public SafeNtlmType3Handle(byte[] type2Data, int offset, int count) : base(IntPtr.Zero, true)
         {
-            int status = Interop.libheimntlm.HeimNtlmDecodeType2(type2Data, offset, count, type2Handle);
+            MockUtils.MockLogging.PrintInfo("vijayko", "Came to Type3 ctor with " + offset + " " + count);
+            int status = Interop.libheimntlm.HeimNtlmDecodeType2(type2Data, offset, count, out _type2Handle);
+            MockUtils.MockLogging.PrintInfo("vijayko", "Decoded Type2 " + status + " " + _type2Handle.DangerousGetHandle().ToString("x8"));
             Interop.libheimntlm.HeimdalNtlmException.AssertOrThrowIfError("heim_ntlm_decode_type2 failed", status);
         }
 
@@ -357,7 +355,7 @@ namespace Microsoft.Win32.SafeHandles
         public SafeNtlmBufferHandle GetResponse(uint flags, string username, string password, string domain,
                 out SafeNtlmBufferHandle sessionKey)
         {
-            SafeNtlmBufferHandle outputData = new SafeNtlmBufferHandle();
+            MockUtils.MockLogging.PrintInfo("vijayko", "Came to Type3 GetResponse");
             sessionKey = null;
 
             using (SafeNtlmBufferHandle key = new SafeNtlmBufferHandle())
@@ -368,28 +366,40 @@ namespace Microsoft.Win32.SafeHandles
                 Interop.libheimntlm.HeimdalNtlmException.AssertOrThrowIfError("heim_ntlm_nt_key failed", status);
 
                 byte[] baseSessionKey = new byte[16];
-                status = Interop.libheimntlm.HeimNtlmCalculateLm2(key.Value, key.Length, username, domain, type2Handle, baseSessionKey, lmResponse);
+                status = Interop.libheimntlm.HeimNtlmCalculateResponse(true, key.Value, key.Length, _type2Handle, username, domain,
+                        baseSessionKey, baseSessionKey.Length, lmResponse);
                 Interop.libheimntlm.HeimdalNtlmException.AssertOrThrowIfError("heim_ntlm_calculate_lm2 failed",status);
 
-                status = Interop.libheimntlm.HeimNtlmCalculateNtlm2(key.Value, key.Length, type2Handle, ntResponse,
-                        username, domain, baseSessionKey);
-                Interop.libheimntlm.HeimdalNtlmException.AssertOrThrowIfError("heim_ntlm_calculate_ntlm1 failed", status);
+                status = Interop.libheimntlm.HeimNtlmCalculateResponse(false, key.Value, key.Length, _type2Handle, username, domain,
+                        baseSessionKey, baseSessionKey.Length, ntResponse);
+                Interop.libheimntlm.HeimdalNtlmException.AssertOrThrowIfError("heim_ntlm_calculate_ntlm2 failed", status);
 
                 sessionKey = new SafeNtlmBufferHandle(); // Should not be disposed on success
+                SafeNtlmBufferHandle outputData = new SafeNtlmBufferHandle(); // Should not be disposed on success
                 try
                 {
-                    status = Interop.libheimntlm.CreateType3Message(username, domain, flags, lmResponse, ntResponse, type2Handle,
-                            key.Value, key.Length, sessionKey, baseSessionKey, (uint)baseSessionKey.Length, outputData);
+                    status = Interop.libheimntlm.CreateType3Message(key.Value, key.Length, _type2Handle, username, domain, flags, lmResponse, ntResponse,
+                            baseSessionKey, baseSessionKey.Length, sessionKey, outputData);
                     Interop.libheimntlm.HeimdalNtlmException.AssertOrThrowIfError(
                             "heim_ntlm_build_ntlm1_master failed", status);
                 }
                 catch
                 {
                     sessionKey.Dispose();
+                    outputData.Dispose();
                 }
 
                 return outputData;
             }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _type2Handle.Dispose();
+            }
+            base.Dispose(disposing);
         }
 
         protected override bool ReleaseHandle()

@@ -14,6 +14,7 @@ internal static partial class Interop
         internal static bool EstablishSecurityContext(
             ref SafeGssContextHandle context,
             SafeGssCredHandle credential,
+            bool isNtlm,
             SafeGssNameHandle targetName,
             Interop.libgssapi.GssFlags inFlags,
             byte[] buffer,
@@ -33,10 +34,11 @@ internal static partial class Interop
                 libgssapi.Status status;
                 libgssapi.Status minorStatus;
 
-                status = libgssapi.GssInitSecContextSpNego(
+                status = libgssapi.GssInitSecContext(
 				    out minorStatus,
                                     credential,
                                     ref context,
+                                    isNtlm,
                                     targetName,
                                     (uint)inFlags,
                                     buffer,

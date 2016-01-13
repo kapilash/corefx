@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "pal_ntlmapi.h"
 
 static_assert(PAL_NTLMSSP_NEGOTIATE_UNICODE == NTLM_NEG_UNICODE, "");
@@ -17,139 +18,154 @@ static_assert(PAL_NTLMSSP_NEGOTIATE_KEY_EXCH == NTLM_NEG_KEYEX, "");
 
 extern "C" void HeimNtlmFreeBuf(ntlm_buf* data)
 {
+    printf("Enterd FREE data: %d %p\n", data->length, data->data);
      heim_ntlm_free_buf(data);
 }
 
 extern "C" int32_t HeimNtlmEncodeType1(uint32_t flags, ntlm_buf* data)
 {
-   
-    ntlm_type1 type1 = { 0 };
+    ntlm_type1 type1;
+    memset(&type1, 0, sizeof(ntlm_type1));
     type1.flags = flags;
     return heim_ntlm_encode_type1(&type1, data);
          
 }
 
-extern "C" int32_t HeimNtlmEncodeType3(ntlm_type3* type3, ntlm_buf* data, size_t* size)
+extern "C" int32_t HeimNtlmDecodeType2(uint8_t* data, int32_t offset, int32_t count, ntlm_type2** type2)
 {
-    return heim_ntlm_encode_type3(type3, data, size);
-}
-
-extern "C" int32_t HeimNtlmDecodeType2(uint8_t* data, int32_t offset, int32_t count, ntlm_type2* type2)
-{
-    ntlm_buf buffer { static_cast<size_t>count, (data + offset) };
-    return heim_ntlm_decode_type2(buffer, type2);
+    ntlm_buf buffer { static_cast<size_t>(count), (data + offset) };
+    printf("DEcoding type2 data: %d %p hptr=%p (%x)\n", buffer.length, buffer.data, type2, *type2);
+    *type2 = static_cast<ntlm_type2*>(malloc(sizeof(ntlm_type2)));
+    int32_t stat= heim_ntlm_decode_type2(&buffer, *type2);
+    printf("decode retu: %d %p\n", stat, *type2);
+    printf("Flags:%x name=%s\n", (*type2)->flags, (*type2)->targetname);
+    //printf("CHALLENGE: %.*s\n", 8, (*type2)->challenge);
+    return stat;
 }
 
 extern "C" void HeimNtlmFreeType2(ntlm_type2* type2)
 {
+    printf("Enterd FREE TYPE2: %p\n", type2);
     heim_ntlm_free_type2(type2);
+    free(type2);
 }
 
-extern "C" int32_t HeimNtlmCalculateLm2(uint8_t * key, size_t len, char* username, char* target, ntlm_type2* type2, uint8_t* ntlmv2, ntlm_buf* data);
+extern "C" int32_t HeimNtlmNtKey(char* password, ntlm_buf* key)
 {
-    return heim_ntlm_calculate_lm2(key, len, username, target, type2->challenge, ntlmv2, data);
+printf("Came to NT_KEY\n");
+    return heim_ntlm_nt_key(password, key);
 }
 
-extern "C" int32_t HeimNtlmCalculateNtlm2(uint8_t * key, size_t len, ntlm_type2* type2, ntlm_buf* data, char* username, char* target, uint8_t* ntlmv2);
+extern "C" int32_t HeimNtlmCalculateResponse(bool isLM, uint8_t * key, size_t keylen, ntlm_type2* type2, char* username, char* target, uint8_t* baseSessionKey, int32_t baseSessionKeyLen,  ntlm_buf* data)
 {
-    if (type2->targetinfo.length == 0)
+printf("Came to ANSWER: %d\n", isLM);
+    assert(baseSessionKeyLen == 16);
+    if (isLM)
     {
-        return heim_ntlm_calculate_ntlm1(key, len, type2->challenge, data);
+        return heim_ntlm_calculate_lm2(key, keylen, username, target, type2->challenge, baseSessionKey, data);
     }
-    else 
+    else
     {
-        return heim_ntlm_calculate_ntlm2(key, len, username, target, type2->challenge, &type2->targetinfo, ntlmv2, data);
-    }
-    
-}
-
-static uint8_t* HMACDigest(uint8_t* key, int keylen, uint8_t* input, int inputlen, uint8_t* prefix, int prefixlen)
-{
-    HMAC_CTX* ctx = new HMAC_CTX();
-    uint8_t* output = new uint8_t[16];
-
-    HMAC_CTX_init(ctx);
-    HMAC_Init_ex(ctx, key, keylen, EVP_md5(), NULL);
-    if (prefixlen > 0)
-    {
-        HMAC_Update(ctx, prefix, prefixlen);
-    }
-    HMAC_Update(ctx, input, inputlen);
-    {
-        uint hashLength;
-        HMAC_Final(ref ctx, output, out hashLength);
-    }
-    HMAC_CTX_cleanup(ctx);
-    delete ctx;
-    return output;
-}
-
-static uint8_t* EVPEncryptOrDecrypt(bool encrypt, uint8_t* key, int keylen, uint8_t* input, int inputlen)
-{
-    EVP_CIPHER_CTX ctx = new EVP_CIPHER_CTX();
-    EVP_CIPHER_CTX_init(ctx);
-    EVP_CipherInit_ex(ctx, EVP_rc4(), NULL, key, NULL, encrypt ? 1 : 0);
-
-    uint8_t* output = new uint8_t[inputlen];
-    EVP_Cipher(ctx, output, input, output.Length);
-
-    EVP_CIPHER_CTX_cleanup(ctx);
-    delete ctx;
-
-    return output;
-}
-
-static void heim_ntlm_build_ntlm2_masterx(uint8_t*key, size_t len, ntlm_buf* blob, ntlm_buf* session, ntlm_buf* master)
-{
-    uint8_t* keyPtr = HMACDigest(key, (int)len, blob->data, (int)blob->length, NULL, 0);
-    {
-        {
-            // TODO: replace 16 with length from HMACDigest
-            int status = heim_ntlm_build_ntlm1_master(keyPtr, (size_t) 16, session, master);
-            HeimdalNtlmException.AssertOrThrowIfError("heim_ntlm_build_ntlm1_master failed",
-                    status);
-        }
-
-        uint8_t* exportKey = EVPEncryptOrDecrypt(true, keyPtr, exchangeKey.Length, (uint8_t*)session.Value.ToPointer(), (int)session.Length);
-        delete[] keyPtr;
-        master->length = 16; // repalce with length from encrypt
-        master->data = exportKey;
-        // TODO: how to free exportKey
-    }
-}
-
-extern "C" int32_t CreateType3Message(char* username, char* domain, uint32_t flags, ntlm_buf* lm, ntlm_buf* ntlm, ntlm_type2* type2, uint8_t* key, size_t size, ntlm_buf* session, uint8_t* baseSessionKey, size_t baseSessionKeyLen, ntlm_buf* outputData)
-{
-        ntlm_type3 type3 = { 0 };
-        type3.username = username;
-        type3.targetname = domain;
-        type3.lm = *lm;
-        type3.ntlm = *ntlm;
-        type3.ws = ""; // needs to be non-empty
-        type3.flags = flags;
-
-        int32_t status = 0;
-        ntlm_buf masterKey = { 0 };
         if (type2->targetinfo.length == 0)
         {
-            status = heim_ntlm_build_ntlm1_master(key, size, session, &masterKey);
+            return heim_ntlm_calculate_ntlm1(key, keylen, type2->challenge, data);
         }
-        else
+        else 
         {
-            // Only first 16 uint8_ts of the NTLMv2 response should be passed
-            // TODO: Add an assert to ensure length at least 16
-            ntlm_buf blob = { 16, ntlm->data };
-            status = heim_ntlm_build_ntlm2_masterx(baseSessionKey, baseSessionKeyLen, &blob, session, &masterKey);
+            return heim_ntlm_calculate_ntlm2(key, keylen, username, target, type2->challenge, &type2->targetinfo, baseSessionKey, data);
         }
+    }
+}
 
-        heim_ntlm_free_buf(&masterKey);
-        if (status != 0)
-        {
-            return status;
-        }
+static uint8_t* HMACDigest(uint8_t* key, int32_t keylen, void* input, size_t inputlen)
+{
+printf("Came to HMAC_DIG\n");
+    HMAC_CTX ctx;
+    uint8_t* output = new uint8_t[16];
 
-        type3.sessionkey = *master;
-        size_t micOffset = 0;
-        status = heim_ntlm_encode_type3(&type3, outputData, &micOffset);
+    HMAC_CTX_init(&ctx);
+    HMAC_Init_ex(&ctx, key, keylen, EVP_md5(), NULL);
+    HMAC_Update(&ctx, static_cast<uint8_t*>(input), inputlen);
+    {
+        uint hashLength;
+        HMAC_Final(&ctx, output, &hashLength);
+    }
+    HMAC_CTX_cleanup(&ctx);
+    return output;
+}
+
+static uint8_t* EVPEncryptOrDecrypt(uint8_t* key, void* input, uint32_t inputlen)
+{
+printf("Came to EVPEnc\n");
+    EVP_CIPHER_CTX ctx;
+    EVP_CIPHER_CTX_init(&ctx);
+    EVP_CipherInit_ex(&ctx, EVP_rc4(), NULL, key, NULL, 1);
+
+    uint8_t* output = new uint8_t[inputlen];
+    EVP_Cipher(&ctx, output, static_cast<uint8_t*>(input), inputlen);
+
+    EVP_CIPHER_CTX_cleanup(&ctx);
+printf("Returning from EVpenc: %d %p\n", inputlen, output);
+
+    return output;
+}
+
+static int32_t heim_ntlm_build_ntlm2_masterx(uint8_t* key, int32_t keylen, ntlm_buf* blob, ntlm_buf* sessionKey, ntlm_buf* masterKey)
+{
+    printf("Enterd MASTERX sess=%d master=%d\n", sessionKey->length, masterKey->length);
+    uint8_t* keyPtr;
+    keyPtr = HMACDigest(key, keylen, blob->data, blob->length);
+    {
+        int32_t status = heim_ntlm_build_ntlm1_master(keyPtr, keylen, sessionKey, masterKey);
+            // TODO: handle errors
+
+        uint8_t* exportKey = EVPEncryptOrDecrypt(keyPtr, sessionKey->data, static_cast<uint32_t>(sessionKey->length));
+        delete[] keyPtr;
+        masterKey->length = 16; // repalce with length from encrypt
+        masterKey->data = exportKey;
+        // TODO: how to free exportKey
+        printf("Return from MASTERX stat=%d sess=%d master=%d\n", status, sessionKey->length, masterKey->length);
         return status;
+    }
+}
+
+extern "C" int32_t CreateType3Message(uint8_t* key, size_t keylen, ntlm_type2* type2, char* username, char* domain, uint32_t flags, ntlm_buf* lmResponse, ntlm_buf* ntlmResponse, uint8_t* baseSessionKey, int32_t baseSessionKeyLen, ntlm_buf* sessionKey, ntlm_buf* data)
+{
+printf("Came to CreateType3\n");
+    static char* workstation = static_cast<char*>(calloc(1, sizeof(char))); // empty string
+
+    ntlm_type3 type3;
+    memset(&type3, 0, sizeof(ntlm_type3));
+    type3.username = username;
+    type3.targetname = domain;
+    type3.lm = *lmResponse;
+    type3.ntlm = *ntlmResponse;
+    type3.ws = workstation;
+    type3.flags = flags;
+
+    int32_t status = 0;
+    ntlm_buf masterKey = { 0, NULL };
+    if (type2->targetinfo.length == 0)
+    {
+        status = heim_ntlm_build_ntlm1_master(key, keylen, sessionKey, &masterKey);
+    }
+    else
+    {
+        // Only first 16 uint8_ts of the NTLMv2 response should be passed
+        // TODO: Add an assert to ensure length at least 16
+        ntlm_buf blob = { 16, ntlmResponse->data };
+        status = heim_ntlm_build_ntlm2_masterx(baseSessionKey, baseSessionKeyLen, &blob, sessionKey, &masterKey);
+    }
+
+    // TODO: check freeing of memory
+
+    if (status != 0)
+    {
+        return status;
+    }
+
+    type3.sessionkey = masterKey;
+    status = heim_ntlm_encode_type3(&type3, data);
+    printf("ENCODE TYPE3 status=%d\n", status);
+    return status;
  }

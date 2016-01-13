@@ -15,6 +15,7 @@ internal static partial class Interop
             {
                 int status = libheimntlm.HeimNtlmEncodeType1(flags, data);
                 libheimntlm.HeimdalNtlmException.AssertOrThrowIfError("heim_ntlm_encode_type1 failed", status);
+                MockUtils.MockLogging.PrintInfo("vijayko", "Got back " + status + " len=" + data.Length + " ptr=" + data.Value.ToString("x8"));
 
                 byte[] outputBuffer = new byte[(int)data.Length]; // Always return non-null
                 if (outputBuffer.Length > 0)
@@ -47,10 +48,10 @@ internal static partial class Interop
 
         internal static void CreateKeys(SafeNtlmBufferHandle sessionKey, out SafeNtlmKeyHandle serverSignKey, out SafeNtlmKeyHandle serverSealKey, out SafeNtlmKeyHandle clientSignKey, out SafeNtlmKeyHandle clientSealKey)
         {
-            serverSignKey = new SafeNtlmKeyHandle(sessionKey, false, true);
-            serverSealKey = new SafeNtlmKeyHandle(sessionKey, false, false);
-            clientSignKey = new SafeNtlmKeyHandle(sessionKey, true, true);
-            clientSealKey = new SafeNtlmKeyHandle(sessionKey, true, false);
+            serverSignKey = new SafeNtlmKeyHandle(sessionKey, false, false);
+            serverSealKey = new SafeNtlmKeyHandle(sessionKey, false, true);
+            clientSignKey = new SafeNtlmKeyHandle(sessionKey, true, false);
+            clientSealKey = new SafeNtlmKeyHandle(sessionKey, true, true);
         }
     }
 }

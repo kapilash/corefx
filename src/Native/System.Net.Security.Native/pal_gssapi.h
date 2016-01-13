@@ -7,8 +7,9 @@
 #ifdef  GSSFW
 #include <GSS/GSS.h>
 #else
-#include <gssapi/gssapi_ext.h>
-#include <gssapi/gssapi_krb5.h>
+#include <gssapi.h>
+#include <gssapi_krb5.h>
+#include <gssapi_ext.h>
 #endif
 
 
@@ -56,8 +57,8 @@ extern "C" uint32_t GssReleaseCred(uint32_t* minorStatus, gss_cred_id_t* credHan
 /*
 Shims the gss_init_sec_context method with SPNEGO oids.
 */
-extern "C" uint32_t GssInitSecContextSpNego(uint32_t* minorStatus, gss_cred_id_t claimantCredHandle, gss_ctx_id_t* contextHandle,
-                                            gss_name_t targetName, uint32_t reqFlags, uint8_t* inputBytes, int32_t inputLength, gss_buffer_t outputToken, uint32_t* retFlags);
+extern "C" uint32_t GssInitSecContext(uint32_t* minorStatus, gss_cred_id_t claimantCredHandle, gss_ctx_id_t* contextHandle,
+                                            bool isNtlm, gss_name_t targetName, uint32_t reqFlags, uint8_t* inputBytes, int32_t inputLength, gss_buffer_t outputToken, uint32_t* retFlags);
 
 /*
 Shims the gss_delete_sec_context method.
@@ -85,5 +86,5 @@ extern "C" uint32_t GssInquireSourceName(uint32_t* minorStatus, gss_ctx_id_t con
 /*
 Shims the gss_acquire_cred_with_password method.
 */
-extern "C" uint32_t GssAcquireCredWithPasswordSpNego(uint32_t* minorStatus, const gss_name_t desiredName, char* password, bool isInitiate,
+extern "C" uint32_t GssAcquireCredWithPassword(uint32_t* minorStatus, const gss_name_t desiredName, char* password, bool isInitiate,
                                                      gss_cred_id_t* outputCredHandle);

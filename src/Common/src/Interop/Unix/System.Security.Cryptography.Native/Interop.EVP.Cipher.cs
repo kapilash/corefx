@@ -71,7 +71,11 @@ internal static partial class Interop
         internal static extern IntPtr EvpRc4();
 
         [DllImport(Interop.Libraries.CryptoNative, EntryPoint = "CryptoNative_EvpCipher")]
-        internal static unsafe extern int EvpCipher(ref SafeEvpCipherCtxHandle ctx, byte[] output, byte* input, int inl);
+        internal static unsafe extern int EvpCipher(
+            SafeEvpCipherCtxHandle ctx,
+            byte[] output,
+            byte* input,
+            int inl);
 
     }
 }

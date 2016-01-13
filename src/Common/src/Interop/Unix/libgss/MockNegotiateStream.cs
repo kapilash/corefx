@@ -31,7 +31,7 @@ namespace MockNegotiateStream
 
     using OM_uint32 = System.UInt32;
     using GssFlags = Interop.libgssapi.GssFlags;
-    //using NtlmFlags = Interop.libheimntlm.NtlmFlags;
+    using NtlmFlags = Interop.libheimntlm.NtlmFlags;
 
     internal class MockCredential
     {
@@ -116,10 +116,8 @@ namespace MockNegotiateStream
                 SecurityBuffer[] inputBuffers = new SecurityBuffer[] {new SecurityBuffer(inBuf, SecurityBufferType.Token)};
                 SecurityBuffer outputBuffer = new SecurityBuffer(0, SecurityBufferType.Token);
                 uint inFlags,outFlags=0;
-#if false
                 if(isNtlm) inFlags = GetNtlmFlags(false, protection, impersonation);
                 else
-#endif
                 inFlags = GetFlags(false, protection, impersonation);
                 var done = NegotiateStreamPal.InitializeSecurityContext(inCred, ref _context, target, inFlags, 0, inputBuffers, outputBuffer, ref outFlags);
                 MockLogging.PrintInfo(null, "____________ DONE: " + done);
@@ -158,7 +156,7 @@ namespace MockNegotiateStream
 
         internal int Read(byte[] buffer, int offset, int count)
         {
-            if (!_isSecure) return _framer.ReadData(buffer, offset, count);
+            if (!_isSecure) return _stream.Read(buffer, offset, count);
             var internalBuffer = new byte[count];
             count = _framer.ReadData(internalBuffer, 0, count);
             int newOffset;
@@ -172,7 +170,7 @@ namespace MockNegotiateStream
         {
             if (!_isSecure)
             {
-                _framer.WriteData(buffer, offset, count);
+                _stream.Write(buffer, offset, count);
                 return; 
             }
             byte[] outBuf = null;
@@ -195,7 +193,6 @@ namespace MockNegotiateStream
             return (OM_uint32)inFlags;
         }
 
-#if false
         private uint GetNtlmFlags(bool isServer, MockProtection protection, MockImpersonation impersonation)
         {
             uint inFlags = NtlmFlags.NTLMSSP_NEGOTIATE_UNICODE | NtlmFlags.NTLMSSP_REQUEST_TARGET;
@@ -203,7 +200,6 @@ namespace MockNegotiateStream
             if (protection == MockProtection.EncryptAndSign) inFlags |= NtlmFlags.NTLMSSP_NEGOTIATE_SEAL;
             return inFlags;
         }
-#endif
 
         private class MockFramer
         {

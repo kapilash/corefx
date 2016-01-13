@@ -5,8 +5,9 @@
 
 #include <stddef.h>
 #include <time.h>
+#include <assert.h>
 #include "pal_types.h"
-#include "heimdal/heimntlm.h"
+#include "heimntlm.h"
 #include "openssl/hmac.h"
 #include "openssl/evp.h"
 
@@ -37,7 +38,7 @@ extern "C" int32_t HeimNtlmEncodeType1(uint32_t flags, ntlm_buf* data);
 /*
 Shims heim_ntlm_decode_type2 method.
 */
-extern "C" int32_t HeimNtlmDecodeType2(uint8_t* data, int32_t offset, int32_t count, ntlm_type2* type2);
+extern "C" int32_t HeimNtlmDecodeType2(uint8_t* data, int32_t offset, int32_t count, ntlm_type2** type2);
 
 /*
 Shims heim_ntlm_free_type2 method.
@@ -45,16 +46,16 @@ Shims heim_ntlm_free_type2 method.
 extern "C" void HeimNtlmFreeType2(ntlm_type2* type2);
 
 /*
-Shims heim_ntlm_calculate_lm2 method.
+Shims heim_ntlm_nt_key method.
 */
-extern "C" int32_t HeimNtlmCalculateLm2(uint8_t * key, size_t len, char* username, char* target, ntlm_type2* type2, uint8_t* ntlmv2, ntlm_buf* data);
+extern "C" int32_t HeimNtlmNtKey(char* password, ntlm_buf* key);
 
 /*
-Shims heim_ntlm_calculate_ntlm2 method.
+Shims heim_ntlm_calculate_lm2/_ntlm2 methods.
 */
-extern "C" int32_t HeimNtlmCalculateNtlm2(uint8_t * key, size_t len, ntlm_type2* type2, ntlm_buf* data, char* username, char* target, uint8_t* ntlmv2);
+extern "C" int32_t HeimNtlmCalculateResponse(bool isLM, uint8_t * key, size_t keylen, ntlm_type2* type2, char* username, char* target, uint8_t* baseSessionKey, int32_t baseSessionKeyLen,  ntlm_buf* data);
 
 /*
 Implements Type3 msg proccessing logic
 */
-extern "C" int32_t CreateType3Message(char* username, char* domain, uint32_t flags, ntlm_buf* lm, ntlm_buf* ntlm, ntlm_type2* type2, uint8_t* key, size_t size, ntlm_buf* session, uint8_t* baseSessionKey, size_t baseSessionKeyLen, ntlm_buf* outputData);
+extern "C" int32_t CreateType3Message(uint8_t* key, size_t keylen, ntlm_type2* type2, char* username, char* domain, uint32_t flags, ntlm_buf* lmResponse, ntlm_buf* ntlmResponse, uint8_t* baseSessionKey, int32_t baseSessionKeyLen, ntlm_buf* sessionKey, ntlm_buf* data);
