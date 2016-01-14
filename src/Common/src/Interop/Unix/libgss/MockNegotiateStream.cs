@@ -107,7 +107,6 @@ namespace MockNegotiateStream
             SafeHandle inCred;
             var isNtlm = string.IsNullOrEmpty(target) || (protection == MockProtection.None);
             var package = isNtlm ? "NTLM" : "Negotiate";
-            MockLogging.PrintInfo(null, "isNtlm?: " + isNtlm);
             NegotiateStreamPal.AcquireCredentialsHandle(package, false, cred.UserName, cred.Password, cred.Domain, out inCred);
             //NegotiateStreamPal.AcquireDefaultCredential(string.Empty, false, out inCred);
             byte[] inBuf = null;
@@ -120,7 +119,6 @@ namespace MockNegotiateStream
                 else
                 inFlags = GetFlags(false, protection, impersonation);
                 var done = NegotiateStreamPal.InitializeSecurityContext(inCred, ref _context, target, inFlags, 0, inputBuffers, outputBuffer, ref outFlags);
-                MockLogging.PrintInfo(null, "____________ DONE: " + done);
                 if (!isNtlm && done == SecurityStatusPal.OK)
                 {
                     _framer.MessageId = 20;
@@ -148,7 +146,6 @@ namespace MockNegotiateStream
                 uint outFlags=0;
                 var inFlags = GetFlags(false, protection, impersonation);
                 var done = NegotiateStreamPal.AcceptSecurityContext(inCred, ref _context, inputBuffer, inFlags, 0, outputBuffer, ref outFlags);
-                MockLogging.PrintInfo(null, "____________ DONE: " + done);
                 _framer.WriteMessage(outputBuffer.token);
                 if (done==SecurityStatusPal.OK) break;
             }

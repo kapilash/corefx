@@ -183,7 +183,6 @@ namespace Microsoft.Win32.SafeHandles
         // it is a by-product of some other allocation
         protected override bool ReleaseHandle()
         {
-            MockUtils.MockLogging.PrintInfo("vijayko", "RELEASE BUFFER: " + Length + " " + Value.ToString("x8"));
             Interop.libheimntlm.ntlm_buf buffer = (Interop.libheimntlm.ntlm_buf) _gch.Target;
             Interop.libheimntlm.HeimNtlmFreeBuf(ref buffer);
             _gch.Free();
@@ -251,7 +250,6 @@ namespace Microsoft.Win32.SafeHandles
 
         public byte[] Sign(SafeNtlmKeyHandle sealingKey, byte[] buffer, int offset, int count)
         {
-            MockUtils.MockLogging.PrintInfo("vijayko", "Entered signing");
             Debug.Assert(!_isSealingKey, "Cannot sign with sealing key");
             byte[] output = new byte[16];
             Array.Clear(output, 0, output.Length);
@@ -265,7 +263,6 @@ namespace Microsoft.Win32.SafeHandles
                         MarshalUint(outPtr + 12, _sequenceNumber);
                         hash = Interop.libheimntlm.HMACDigest((byte*) handle.ToPointer(), (int)_digestLength, (bytePtr + offset), count,
                                 outPtr + 12, 4);
-            MockUtils.MockLogging.PrintInfo("vijayko", "Afeter HMACDigest");
                         _sequenceNumber++;
                     }
             }
@@ -278,7 +275,6 @@ namespace Microsoft.Win32.SafeHandles
                 byte[] cipher = sealingKey.SealOrUnseal(true, hash, 0, 8);
                 Array.Copy(cipher, 0, output, 4, cipher.Length);
             }
-            MockUtils.MockLogging.PrintInfo("vijayko", "Afeter copy: " + _sequenceNumber);
             return output;
         }
 
@@ -292,9 +288,7 @@ namespace Microsoft.Win32.SafeHandles
                     // Since RC4 is XOR-based, encrypt or decrypt is relative to input data
                     byte[] output = new byte[count];
 
-            MockUtils.MockLogging.PrintInfo("vijayko", "BEFORE EvpCipher " + count);
                     Crypto.EvpCipher(_cipherContext, output, (bytePtr + offset), count);
-            MockUtils.MockLogging.PrintInfo("vijayko", "AFTER EvpCipher " + count);
                     return  output;
 
                 }
@@ -341,9 +335,7 @@ namespace Microsoft.Win32.SafeHandles
         private readonly SafeNtlmType2Handle _type2Handle;
         public SafeNtlmType3Handle(byte[] type2Data, int offset, int count) : base(IntPtr.Zero, true)
         {
-            MockUtils.MockLogging.PrintInfo("vijayko", "Came to Type3 ctor with " + offset + " " + count);
             int status = Interop.libheimntlm.HeimNtlmDecodeType2(type2Data, offset, count, out _type2Handle);
-            MockUtils.MockLogging.PrintInfo("vijayko", "Decoded Type2 " + status + " " + _type2Handle.DangerousGetHandle().ToString("x8"));
             Interop.libheimntlm.HeimdalNtlmException.AssertOrThrowIfError("heim_ntlm_decode_type2 failed", status);
         }
 
@@ -355,7 +347,6 @@ namespace Microsoft.Win32.SafeHandles
         public SafeNtlmBufferHandle GetResponse(uint flags, string username, string password, string domain,
                 out SafeNtlmBufferHandle sessionKey)
         {
-            MockUtils.MockLogging.PrintInfo("vijayko", "Came to Type3 GetResponse");
             sessionKey = null;
 
             using (SafeNtlmBufferHandle key = new SafeNtlmBufferHandle())
