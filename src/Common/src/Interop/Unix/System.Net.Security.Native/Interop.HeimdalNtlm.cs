@@ -13,8 +13,8 @@ internal static partial class Interop
         {
             using (SafeNtlmBufferHandle data = new SafeNtlmBufferHandle())
             {
-                int status = libheimntlm.HeimNtlmEncodeType1(flags, data);
-                libheimntlm.HeimdalNtlmException.AssertOrThrowIfError("heim_ntlm_encode_type1 failed", status);
+                int status = NetSecurity.HeimNtlmEncodeType1(flags, data);
+                NetSecurity.HeimdalNtlmException.AssertOrThrowIfError("HeimNtlmEncodeType1 failed", status);
 
                 byte[] outputBuffer = new byte[(int)data.Length]; // Always return non-null
                 if (outputBuffer.Length > 0)
@@ -29,10 +29,10 @@ internal static partial class Interop
         internal static byte[] CreateAuthenticateMessage(uint flags, string username, string password, string domain,
             byte[] type2Data, int offset, int count, out SafeNtlmBufferHandle sessionKey)
         {
-            using (SafeNtlmType3Handle outputMessage = new SafeNtlmType3Handle(type2Data, offset, count))
+            using (SafeNtlmType3Handle challengeMessage = new SafeNtlmType3Handle(type2Data, offset, count))
             {
                 using (
-                        SafeNtlmBufferHandle outputData = outputMessage.GetResponse(flags, username, password, domain,
+                        SafeNtlmBufferHandle outputData = challengeMessage.GetResponse(flags, username, password, domain,
                             out sessionKey))
                 {
                     byte[] outputBuffer = new byte[(int) outputData.Length]; // Always return non-null
