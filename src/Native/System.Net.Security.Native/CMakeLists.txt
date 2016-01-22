@@ -7,7 +7,8 @@ add_definitions(-DPIC=1)
 if (APPLE)
    find_library(LIBGSS NAMES GSS)
    add_definitions(-DGSSFW)
-   set(HEIMDAL "")
+   find_library(HEIMDAL NAMES heimntlm PATHS /usr/heimdal/lib)
+   include_directories(/usr/heimdal/include)
 else()
    find_library(LIBGSS NAMES gssapi_krb5)
    find_library(HEIMDAL NAMES heimntlm PATHS /usr/heimdal/lib)
@@ -37,11 +38,11 @@ set(NATIVENTLM_SOURCES
 	pal_ntlmapi.cpp
 )
 
-if (APPLE)
-   set (NETSECURITY_SOURCES     ${NATIVEGSS_SOURCES})
-else()
+#if (APPLE)
+#   set (NETSECURITY_SOURCES     ${NATIVEGSS_SOURCES})
+#else()
       set (NETSECURITY_SOURCES     ${NATIVEGSS_SOURCES} ${NATIVENTLM_SOURCES})
-endif()
+#endif()
 
 add_library(System.Net.Security.Native
     SHARED

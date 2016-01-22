@@ -44,7 +44,7 @@ namespace Microsoft.Win32.SafeHandles
         }
 
         public SafeNtlmBufferHandle()
-            : base(IntPtr.Zero, true)
+           : base(IntPtr.Zero, true)
         {
             Interop.NetSecurity.ntlm_buf buffer = new Interop.NetSecurity.ntlm_buf
             {
@@ -136,32 +136,41 @@ namespace Microsoft.Win32.SafeHandles
             Debug.Assert(!_isSealingKey, "Cannot sign with sealing key");
             Debug.Assert(offset > 0 && offset < buffer.Length, "Cannot sign with invalid offset " + offset);
             Debug.Assert((count + offset) < buffer.Length, "Cannot sign with invalid count " + count);
+
+            // reference for signing a message: https://msdn.microsoft.com/en-us/library/cc236702.aspx
+            const uint Version = 0x00000001;
+            const int ChecksumOffset = 4;
+            const int SequenceNumberOffset = 12;
+            const int HMacDigestLength = 8;
+
+            
             byte[] output = new byte[Interop.NetSecurity.MD5DigestLength];
             Array.Clear(output, 0, output.Length);
             byte[] hash;
             unsafe
             {
-                // reference for signing a message: https://msdn.microsoft.com/en-us/library/cc236702.aspx
+
                 fixed (byte* outPtr = output)
                 fixed (byte* bytePtr = buffer)
                 {
-                    MarshalUint(outPtr, 0x00000001); // version
-                    MarshalUint(outPtr + 12, _sequenceNumber);
+                    MarshalUint(outPtr, Version); // version
+                    MarshalUint(outPtr + SequenceNumberOffset, _sequenceNumber);
+                    int hashLength;
                     hash = Interop.NetSecurity.HMACDigest((byte*) handle.ToPointer(), (int)_digestLength, (bytePtr + offset), count,
-                                                          outPtr + 12, 4);
-                    Debug.Assert(hash != null && hash.Length >= 8, "HMACDigest has a length of at least 8");
+                                                          outPtr + SequenceNumberOffset, ChecksumOffset, out hashLengt);
+                    Debug.Assert(hash != null && hashLength >= HMacDigestLength, "HMACDigest has a length of at least " + HMacDigestLength);
                     _sequenceNumber++;
                 }
             }
 
             if ((sealingKey == null) || sealingKey.IsInvalid)
             {
-                Array.Copy(hash, 0, output, 4, 8);
+                Array.Copy(hash, 0, output, ChecksumOffset, HMacDigestLength);
             }
             else
             {
-                byte[] cipher = sealingKey.SealOrUnseal(true, hash, 0, 8);
-                Array.Copy(cipher, 0, output, 4, cipher.Length);
+                byte[] cipher = sealingKey.SealOrUnseal(true, hash, 0, HMacDigestLength);
+                Array.Copy(cipher, 0, output, ChecksumOffset, cipher.Length);
             }
 
             return output;
@@ -169,6 +178,7 @@ namespace Microsoft.Win32.SafeHandles
 
         public byte[] SealOrUnseal(bool seal, byte[] buffer, int offset, int count)
         {
+            //Message Confidentiality. Reference: https://msdn.microsoft.com/en-us/library/cc236707.aspx
             Debug.Assert(_isSealingKey, "Cannot seal or unseal with signing key");
             Debug.Assert(offset > 0 && offset < buffer.Length, "Cannot sign with invalid offset " + offset);
             Debug.Assert((count + offset) < buffer.Length, "Cannot sign with invalid count " + count);
@@ -178,6 +188,7 @@ namespace Microsoft.Win32.SafeHandles
                 fixed (byte* bytePtr = buffer)
                 {
                     // Since RC4 is XOR-based, encrypt or decrypt is relative to input data
+                    // reference: https://msdn.microsoft.com/en-us/library/cc236707.aspx
                     byte[] output = new byte[count];
 
                     Interop.Crypto.EvpCipher(_cipherContext, output, (bytePtr + offset), count);
@@ -293,11 +304,6 @@ namespace Microsoft.Win32.SafeHandles
             return true;
         }
     }
-}
-
-
-namespace System.Net.Security
-{
  
     internal sealed class SafeFreeNtlmCredentials : SafeHandle
     {

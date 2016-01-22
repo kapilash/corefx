@@ -30,8 +30,7 @@ internal static partial class Interop
         [DllImport(Interop.Libraries.SecurityNative, CharSet = CharSet.Ansi)]
         internal static extern int HeimNtlmCalculateResponse(
             bool isLM,
-            IntPtr key,
-            size_t keylen,
+            SafeNtlmBufferHandle key,
             SafeNtlmType2Handle type2Handle,
             string username,
             string target,
@@ -41,8 +40,7 @@ internal static partial class Interop
 
         [DllImport(Interop.Libraries.SecurityNative, CharSet = CharSet.Ansi)]
         internal static extern int CreateType3Message(
-            IntPtr key,
-            size_t keylen,
+            SafeNtlmBufferHandle key,
             SafeNtlmType2Handle type2Handle,
             string username,
             string domain,
@@ -94,9 +92,9 @@ internal static partial class Interop
             return output;
         }
 
-        internal static unsafe byte[] HMACDigest(byte* key, int keylen, byte* input, int inputlen, byte* prefix, int prefixlen)
+        internal static unsafe byte[] HMACDigest(byte* key, int keylen, byte* input, int inputlen, byte* prefix, int prefixlen, out int hashLength)
         {
-            
+            hashLength = 0;
             byte[] output = new byte[Interop.Crypto.EVP_MAX_MD_SIZE];
             using (SafeHmacCtxHandle ctx = Interop.Crypto.HmacCreate(key, keylen, Interop.Crypto.EvpMd5()))
             {
@@ -107,7 +105,6 @@ internal static partial class Interop
                 Check(Interop.Crypto.HmacUpdate(ctx, input, inputlen));
                 fixed (byte* hashPtr = output)
                 {
-                    int hashLength = 0;
                     Check(Interop.Crypto.HmacFinal(ctx, hashPtr, ref hashLength));
                 }
             }
@@ -119,7 +116,6 @@ internal static partial class Interop
             const int Success = 1;
             if (result != Success)
             {
-                Debug.Assert(result == 0);
                 throw Interop.Crypto.CreateOpenSslCryptographicException();
             }
         }

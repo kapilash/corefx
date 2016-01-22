@@ -273,14 +273,14 @@
     <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\Interop.Ntlm.cs">
       <Link>Common\Interop\Unix\System.Net.Security.Native\Interop.Ntlm.cs</Link>
     </Compile>
-    <Compile Include="$(CommonPath)\Interop\Unix\libheimntlm\Interop.HeimdalNtlm.cs">
-      <Link>Common\Interop\Unix\libheimntlm\Interop.HeimdalNtlm.cs</Link>
+    <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\Interop.HeimdalNtlm.cs">
+      <Link>Common\Interop\Unix\System.Net.Security.Native\Interop.HeimdalNtlm.cs</Link>
     </Compile>
-    <Compile Include="$(CommonPath)\Interop\Unix\libheimntlm\Interop.HeimdalNtlmException.cs">
-      <Link>Common\Interop\Unix\libheimntlm\Interop.HeimdalNtlmException.cs</Link>
+    <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\Interop.HeimdalNtlmException.cs">
+      <Link>Common\Interop\Unix\System.Net.Security.Native\Interop.HeimdalNtlmException.cs</Link>
     </Compile>    
-    <Compile Include="$(CommonPath)\Interop\Unix\libheimntlm\SecuritySafeHandles.cs">
-      <Link>Common\Interop\Unix\libheimntlm\SecuritySafeHandles.cs</Link>
+    <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\NtlmSecuritySafeHandles.cs">
+      <Link>Common\Interop\Unix\System.Net.Security.Native\NtlmSecuritySafeHandles.cs</Link>
     </Compile>
     <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\Interop.Gss.cs">
       <Link>Common\Interop\Unix\System.Net.Security.Native\Interop.Gss.cs</Link>

@@ -3,14 +3,8 @@
 
 #pragma once
 
-#include <stddef.h>
 #include <time.h>
-#include <assert.h>
-#include "pal_types.h"
 #include "heimntlm.h"
-#include "openssl/hmac.h"
-#include "openssl/evp.h"
-
 
 enum NtlmFlags : int32_t
 {
@@ -48,14 +42,14 @@ extern "C" void NetSecurity_HeimNtlmFreeType2(ntlm_type2* type2);
 /*
 Shims heim_ntlm_nt_key method.
 */
-extern "C" int32_t NetSecurity_HeimNtlmNtKey(char* password, ntlm_buf* key);
+extern "C" int32_t NetSecurity_HeimNtlmNtKey(const char* password, ntlm_buf* key);
 
 /*
 Shims heim_ntlm_calculate_lm2/_ntlm2 methods.
 */
-extern "C" int32_t NetSecurity_HeimNtlmCalculateResponse(int32_t isLM, uint8_t * key, size_t keylen, ntlm_type2* type2, char* username, char* target, uint8_t* baseSessionKey, int32_t baseSessionKeyLen,  ntlm_buf* data);
+extern "C" int32_t NetSecurity_HeimNtlmCalculateResponse(int32_t isLM, ntlm_buf* key, ntlm_type2* type2, char* username, char* target, uint8_t* baseSessionKey, int32_t baseSessionKeyLen,  ntlm_buf* data);
 
 /*
 Implements Type3 msg proccessing logic
 */
-extern "C" int32_t NetSecurity_CreateType3Message(uint8_t* key, size_t keylen, ntlm_type2* type2, char* username, char* domain, uint32_t flags, ntlm_buf* lmResponse, ntlm_buf* ntlmResponse, uint8_t* baseSessionKey, int32_t baseSessionKeyLen, ntlm_buf* sessionKey, ntlm_buf* data);
+extern "C" int32_t NetSecurity_CreateType3Message(ntlm_buf* key, ntlm_type2* type2, char* username, char* domain, uint32_t flags, ntlm_buf* lmResponse, ntlm_buf* ntlmResponse, uint8_t* baseSessionKey, int32_t baseSessionKeyLen, ntlm_buf* sessionKey, ntlm_buf* data);
