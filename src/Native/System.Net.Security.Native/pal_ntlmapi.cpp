@@ -145,7 +145,7 @@ static uint8_t* NetSecurity_EVPEncrypt(uint8_t* key, void* input, size_t inputle
     return output;
 }
 
-static int32_t NetSecurity_build_ntlm2_masterx(uint8_t* key, int32_t keylen, ntlm_buf* blob, ntlm_buf* sessionKey, ntlm_buf* masterKey)
+static int32_t NetSecurity_build_ntlm2_master(uint8_t* key, int32_t keylen, ntlm_buf* blob, ntlm_buf* sessionKey, ntlm_buf* masterKey)
 {
     //reference: https://msdn.microsoft.com/en-us/library/cc236709.aspx
     uint8_t* ntlmv2hash = NetSecurity_HMACDigest(key, keylen, blob->data, blob->length);
@@ -192,7 +192,7 @@ extern "C" int32_t NetSecurity_CreateType3Message(ntlm_buf* key, ntlm_type2* typ
         // Only first 16 bytes of the NTLMv2 response should be passed
         assert(ntlmResponse->length >= MD5_DIGEST_LENGTH);
         ntlm_buf blob = { .length = MD5_DIGEST_LENGTH, .data = ntlmResponse->data };
-        status = NetSecurity_build_ntlm2_masterx(baseSessionKey, baseSessionKeyLen, &blob, *outSessionHandle, &masterKey);
+        status = NetSecurity_build_ntlm2_master(baseSessionKey, baseSessionKeyLen, &blob, *outSessionHandle, &masterKey);
     }
     status = NetSecurity_SetBufferLength(status, *outSessionHandle, outSessionKeyLen);
     if (status != 0)
@@ -219,7 +219,7 @@ extern "C" int32_t NetSecurity_CreateType3Message(ntlm_buf* key, ntlm_type2* typ
     }
     else
     {
-        // in case of v2, masterKey.data is created by NetSecurity_build_ntlm2_masterx function and free_buf cannot be called.
+        // in case of v2, masterKey.data is created by NetSecurity_build_ntlm2_master function and free_buf cannot be called.
         delete[] static_cast<uint8_t*>(masterKey.data);
     }
     return NetSecurity_SetBufferLength(status, *outBufferHandle, outLength);
