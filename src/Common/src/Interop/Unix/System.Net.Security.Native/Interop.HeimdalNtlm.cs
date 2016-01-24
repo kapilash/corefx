@@ -11,41 +11,27 @@ internal static partial class Interop
     {
         internal static byte[] CreateNegotiateMessage(uint flags)
         {
-            using (SafeNtlmBufferHandle data = new SafeNtlmBufferHandle())
+            SafeNtlmBufferHandle data;
+            int dataLen;
+            int status = NetSecurity.HeimNtlmEncodeType1(flags, out data, out dataLen);
+            NetSecurity.HeimdalNtlmException.AssertOrThrowIfError("HeimNtlmEncodeType1 failed", status);
+            using (data)
             {
-                int status = NetSecurity.HeimNtlmEncodeType1(flags, data);
-                NetSecurity.HeimdalNtlmException.AssertOrThrowIfError("HeimNtlmEncodeType1 failed", status);
-
-                byte[] outputBuffer = new byte[(int)data.Length]; // Always return non-null
-                if (outputBuffer.Length > 0)
-                {
-                    Marshal.Copy(data.Value, outputBuffer, 0, outputBuffer.Length);
-                }
-
-                return outputBuffer;
+                return data.ToByteArray(dataLen,0);
             }
         }
 
         internal static byte[] CreateAuthenticateMessage(uint flags, string username, string password, string domain,
-            byte[] type2Data, int offset, int count, out SafeNtlmBufferHandle sessionKey)
+                                                         byte[] type2Data, int offset, int count, out byte[] sessionKey)
         {
+            
             using (SafeNtlmType3Handle challengeMessage = new SafeNtlmType3Handle(type2Data, offset, count))
             {
-                using (
-                        SafeNtlmBufferHandle outputData = challengeMessage.GetResponse(flags, username, password, domain,
-                            out sessionKey))
-                {
-                    byte[] outputBuffer = new byte[(int) outputData.Length]; // Always return non-null
-                    if (outputBuffer.Length > 0)
-                    {
-                        Marshal.Copy(outputData.Value, outputBuffer, 0, outputBuffer.Length);
-                    }
-                    return outputBuffer;
-                }
+                return  challengeMessage.GetResponse(flags, username, password, domain, out sessionKey);
             }
         }
 
-        internal static void CreateKeys(SafeNtlmBufferHandle sessionKey, out SafeNtlmKeyHandle serverSignKey, out SafeNtlmKeyHandle serverSealKey, out SafeNtlmKeyHandle clientSignKey, out SafeNtlmKeyHandle clientSealKey)
+        internal static void CreateKeys(byte[] sessionKey, out SafeNtlmKeyHandle serverSignKey, out SafeNtlmKeyHandle serverSealKey, out SafeNtlmKeyHandle clientSignKey, out SafeNtlmKeyHandle clientSealKey)
         {
             serverSignKey = new SafeNtlmKeyHandle(sessionKey, false, false);
             serverSealKey = new SafeNtlmKeyHandle(sessionKey, false, true);

@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 internal static partial class Interop
 {
-    internal static partial class libheimntlm
+    internal static partial class NetSecurity
     {
         internal sealed class HeimdalNtlmException : Exception
         {
@@ -21,22 +21,11 @@ internal static partial class Interop
                 HResult = error;
             }
 
-
-            public static HeimdalNtlmException Create(string message)
-            {
-                return new HeimdalNtlmException(message);
-            }
-
-            public static HeimdalNtlmException Create(int error)
-            {
-                return new HeimdalNtlmException(error);
-            }
-
             public static void AssertOrThrowIfError(string message, int error)
             {
                 if (error != 0)
                 {
-                    var ex = Create(error);
+                    var ex = new HeimdalNtlmException(error);
                     Debug.Fail(message + ": " + ex);
                     throw ex;
                 }

@@ -279,8 +279,11 @@
     <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\Interop.HeimdalNtlmException.cs">
       <Link>Common\Interop\Unix\System.Net.Security.Native\Interop.HeimdalNtlmException.cs</Link>
     </Compile>    
-    <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\NtlmSecuritySafeHandles.cs">
-      <Link>Common\Interop\Unix\System.Net.Security.Native\NtlmSecuritySafeHandles.cs</Link>
+    <Compile Include="$(CommonPath)\Microsoft\Win32\SafeHandles\NtlmSecuritySafeHandles.cs">
+      <Link>Common\Microsoft\Win32\SafeHandles\NtlmSecuritySafeHandles.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\MockHandles.cs">
+      <Link>Common\Interop\Unix\System.Net.Security.Native\MockHandles.cs</Link>
     </Compile>
     <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\Interop.Gss.cs">
       <Link>Common\Interop\Unix\System.Net.Security.Native\Interop.Gss.cs</Link>

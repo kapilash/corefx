@@ -192,13 +192,10 @@ namespace System.Net
             else
             {
                 uint flags = ((SafeDeleteNtlmContext)context).Flags;
-                SafeNtlmBufferHandle sessionKey;
+                byte[] sessionKey;
                 outputBuffer.token = Interop.HeimdalNtlm.CreateAuthenticateMessage(flags, credential.UserName,
                     credential.Password, credential.Domain, inputBuffer.token, inputBuffer.offset, inputBuffer.size, out sessionKey);
-                using (sessionKey)
-                {
-                    ((SafeDeleteNtlmContext)context).SetKeys(sessionKey);
-                }
+                ((SafeDeleteNtlmContext)context).SetKeys(sessionKey);
                 retVal = SecurityStatusPal.OK;
             }
             outputBuffer.size = outputBuffer.token.Length;

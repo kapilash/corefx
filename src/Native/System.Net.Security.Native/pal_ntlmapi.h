@@ -22,12 +22,17 @@ enum NtlmFlags : int32_t
 /*
 Shims heim_ntlm_free_buf method.
 */
-extern "C" void NetSecurity_HeimNtlmFreeBuf(ntlm_buf* data);
+extern "C" void NetSecurity_HeimNtlmFreeBuf(ntlm_buf** data);
+
+/*
+Copies data from ntlm_buffer into an array of given size, from the offset.
+*/
+extern "C" void NetSecurity_CopyBuffer(const ntlm_buf* bufferHandle, uint8_t *bytes, int32_t offset);
 
 /*
 Shims heim_ntlm_encode_type1 method.
 */
-extern "C" int32_t NetSecurity_HeimNtlmEncodeType1(uint32_t flags, ntlm_buf* data);
+extern "C" int32_t NetSecurity_HeimNtlmEncodeType1(uint32_t flags, ntlm_buf** outBufferHandle, int *outLength);
 
 /*
 Shims heim_ntlm_decode_type2 method.
@@ -42,14 +47,14 @@ extern "C" void NetSecurity_HeimNtlmFreeType2(ntlm_type2* type2);
 /*
 Shims heim_ntlm_nt_key method.
 */
-extern "C" int32_t NetSecurity_HeimNtlmNtKey(const char* password, ntlm_buf* key);
+extern "C" int32_t NetSecurity_HeimNtlmNtKey(const char* password, ntlm_buf** outBufferHandle, int *outLength);
 
 /*
 Shims heim_ntlm_calculate_lm2/_ntlm2 methods.
 */
-extern "C" int32_t NetSecurity_HeimNtlmCalculateResponse(int32_t isLM, ntlm_buf* key, ntlm_type2* type2, char* username, char* target, uint8_t* baseSessionKey, int32_t baseSessionKeyLen,  ntlm_buf* data);
+extern "C" int32_t NetSecurity_HeimNtlmCalculateResponse(int32_t isLM, const ntlm_buf* key, ntlm_type2* type2, char* username, char* target, uint8_t* baseSessionKey, int32_t baseSessionKeyLen,  ntlm_buf** data, int *outLength);
 
 /*
 Implements Type3 msg proccessing logic
 */
-extern "C" int32_t NetSecurity_CreateType3Message(ntlm_buf* key, ntlm_type2* type2, char* username, char* domain, uint32_t flags, ntlm_buf* lmResponse, ntlm_buf* ntlmResponse, uint8_t* baseSessionKey, int32_t baseSessionKeyLen, ntlm_buf* sessionKey, ntlm_buf* data);
+extern "C" int32_t NetSecurity_CreateType3Message(ntlm_buf* key, ntlm_type2* type2, char* username, char* domain, uint32_t flags, ntlm_buf* lmResponse, ntlm_buf* ntlmResponse, uint8_t* baseSessionKey, int32_t baseSessionKeyLen, ntlm_buf** outSessionHandle, int32_t *outSessionKeyLen, ntlm_buf** outBufferHandle, int32_t *outLength);

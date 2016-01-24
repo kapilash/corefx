@@ -1,12 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Authentication;
 using System.Security.Authentication.ExtendedProtection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace Microsoft.Win32.SafeHandles
 {
@@ -15,46 +17,18 @@ namespace Microsoft.Win32.SafeHandles
     /// </summary>
     internal sealed class SafeNtlmBufferHandle : SafeHandle
     {
-        private readonly GCHandle _gch;
-
-        // Return the buffer size
-        public size_t Length
-        {
-            get
-            {
-                if (IsInvalid)
-                {
-                    return (size_t) 0;
-                }
-                return ((Interop.NetSecurity.ntlm_buf) _gch.Target).length;
-            }
-        }
-
-        // Return a pointer to where data resides
-        public IntPtr Value
-        {
-            get
-            {
-                if (IsInvalid)
-                {
-                    return IntPtr.Zero;
-                }
-                return ((Interop.NetSecurity.ntlm_buf) _gch.Target).data;
-            }
-        }
-
         public SafeNtlmBufferHandle()
            : base(IntPtr.Zero, true)
         {
-            Interop.NetSecurity.ntlm_buf buffer = new Interop.NetSecurity.ntlm_buf
-            {
-                length = (size_t)0,
-                data = IntPtr.Zero,
-            };
-            _gch = GCHandle.Alloc(buffer, GCHandleType.Pinned);
-            handle = _gch.AddrOfPinnedObject();
         }
 
+        public byte[] ToByteArray(int length, int offset) {
+            Debug.Assert(length >= 0, "negative length of buffer");
+            byte[] target = new byte[length];
+            Interop.NetSecurity.CopyBuffer(this, target, offset);
+            return target;
+        }
+            
         public override bool IsInvalid
         {
             get { return handle == IntPtr.Zero; }
@@ -65,9 +39,7 @@ namespace Microsoft.Win32.SafeHandles
         // it is a by-product of some other allocation
         protected override bool ReleaseHandle()
         {
-            Interop.NetSecurity.ntlm_buf buffer = (Interop.NetSecurity.ntlm_buf) _gch.Target;
-            Interop.NetSecurity.HeimNtlmFreeBuf(ref buffer);
-            _gch.Free();
+            Interop.NetSecurity.HeimNtlmFreeBuf(ref handle);
             SetHandle(IntPtr.Zero);
             return true;
         }
@@ -91,7 +63,7 @@ namespace Microsoft.Win32.SafeHandles
         private const string s_signing = "signing";
         private const string s_sealing = "sealing";
 
-        public SafeNtlmKeyHandle(SafeNtlmBufferHandle key, bool isClient, bool isSealingKey)
+        public SafeNtlmKeyHandle(byte[] key, bool isClient, bool isSealingKey)
             : base(IntPtr.Zero, true)
         {
             string keyMagic = string.Format(s_keyMagic, isClient ? s_client : s_server,
@@ -99,7 +71,7 @@ namespace Microsoft.Win32.SafeHandles
 
             byte[] magic = Encoding.UTF8.GetBytes(keyMagic);
 
-            byte[] digest = Interop.NetSecurity.EVPDigest(key, (int) key.Length, magic, magic.Length, out _digestLength);
+            byte[] digest = Interop.NetSecurity.EVPDigest(key, magic, magic.Length, out _digestLength);
             _isSealingKey = isSealingKey;
             if (_isSealingKey)
             {
@@ -157,7 +129,7 @@ namespace Microsoft.Win32.SafeHandles
                     MarshalUint(outPtr + SequenceNumberOffset, _sequenceNumber);
                     int hashLength;
                     hash = Interop.NetSecurity.HMACDigest((byte*) handle.ToPointer(), (int)_digestLength, (bytePtr + offset), count,
-                                                          outPtr + SequenceNumberOffset, ChecksumOffset, out hashLengt);
+                                                          outPtr + SequenceNumberOffset, ChecksumOffset, out hashLength);
                     Debug.Assert(hash != null && hashLength >= HMacDigestLength, "HMACDigest has a length of at least " + HMacDigestLength);
                     _sequenceNumber++;
                 }
@@ -247,44 +219,59 @@ namespace Microsoft.Win32.SafeHandles
             get { return (null != _type2Handle) && !_type2Handle.IsInvalid; }
         }
 
-        public SafeNtlmBufferHandle GetResponse(uint flags, string username, string password, string domain,
-                out SafeNtlmBufferHandle sessionKey)
+        public byte[] GetResponse(uint flags, string username, string password, string domain,
+                                  out byte[] sessionKey)
         {
-            sessionKey = null;
             // reference for NTLM response: https://msdn.microsoft.com/en-us/library/cc236700.aspx
+            sessionKey = null;
+            SafeNtlmBufferHandle key;
+            int keyLen;
+            int status = Interop.NetSecurity.HeimNtlmNtKey(password, out key, out keyLen);
+            Interop.NetSecurity.HeimdalNtlmException.AssertOrThrowIfError("HeimNtlmKey failed", status);
 
-            using (SafeNtlmBufferHandle key = new SafeNtlmBufferHandle())
-            using (SafeNtlmBufferHandle lmResponse = new SafeNtlmBufferHandle())
-            using (SafeNtlmBufferHandle ntResponse = new SafeNtlmBufferHandle())
+            using (key)
             {
-                int status = Interop.NetSecurity.HeimNtlmNtKey(password, key);
-                Interop.NetSecurity.HeimdalNtlmException.AssertOrThrowIfError("HeimNtlmKey failed", status);
-
                 byte[] baseSessionKey = new byte[Interop.NetSecurity.MD5DigestLength];
-                status = Interop.NetSecurity.HeimNtlmCalculateResponse(true, key.Value, key.Length, _type2Handle, username, domain,
-                        baseSessionKey, baseSessionKey.Length, lmResponse);
+                SafeNtlmBufferHandle lmResponse;
+                int lmResponseLength;
+
+                status = Interop.NetSecurity.HeimNtlmCalculateResponse(true, key, _type2Handle, username, domain,
+                         baseSessionKey, baseSessionKey.Length, out lmResponse, out lmResponseLength);
                 Interop.NetSecurity.HeimdalNtlmException.AssertOrThrowIfError("HeimNtlmCalculateResponse lm1 failed",status);
 
-                status = Interop.NetSecurity.HeimNtlmCalculateResponse(false, key.Value, key.Length, _type2Handle, username, domain,
-                        baseSessionKey, baseSessionKey.Length, ntResponse);
+                SafeNtlmBufferHandle ntResponse;
+                int ntResponseLength;
+                status = Interop.NetSecurity.HeimNtlmCalculateResponse(false, key, _type2Handle, username, domain,
+                                                                       baseSessionKey, baseSessionKey.Length, out ntResponse, out ntResponseLength);
                 Interop.NetSecurity.HeimdalNtlmException.AssertOrThrowIfError("HeimNtlmCalculateResponse lm2 failed", status);
 
-                sessionKey = new SafeNtlmBufferHandle(); // Should not be disposed on success
-                SafeNtlmBufferHandle outputData = new SafeNtlmBufferHandle(); // Should not be disposed on success
+                SafeNtlmBufferHandle sessionKeyHandle = null;
+                int sessionKeyLen;
+                SafeNtlmBufferHandle outputData = null ; // Should not be disposed on success
+                int outputDataLen = 0;
                 try
                 {
-                    status = Interop.NetSecurity.CreateType3Message(key.Value, key.Length, _type2Handle, username, domain, flags, lmResponse, ntResponse,
-                            baseSessionKey, baseSessionKey.Length, sessionKey, outputData);
+                    status = Interop.NetSecurity.CreateType3Message(key, _type2Handle, username, domain, flags, lmResponse, ntResponse,
+                                                                    baseSessionKey, baseSessionKey.Length, out sessionKeyHandle, out sessionKeyLen, out outputData, out outputDataLen);
                     Interop.NetSecurity.HeimdalNtlmException.AssertOrThrowIfError(
-                            "CreateType3Message failed", status);
+                        "CreateType3Message failed", status);
+                    using (sessionKeyHandle)
+                    {
+                        sessionKey = sessionKeyHandle.ToByteArray(sessionKeyLen,0);
+                    }
                 }
                 catch
                 {
-                    sessionKey.Dispose();
-                    outputData.Dispose();
+                    if (outputData != null)
+                    {
+                        outputData.Dispose();
+                    }
                 }
 
-                return outputData;
+                using (outputData)
+                {
+                    return outputData.ToByteArray(outputDataLen, 0);
+                }
             }
         }
 
@@ -293,134 +280,12 @@ namespace Microsoft.Win32.SafeHandles
             if (disposing)
             {
                 _type2Handle.Dispose();
-                _type2Handle = null;
             }
             base.Dispose(disposing);
         }
 
         protected override bool ReleaseHandle()
         {
-            SetHandle(IntPtr.Zero);
-            return true;
-        }
-    }
- 
-    internal sealed class SafeFreeNtlmCredentials : SafeHandle
-    {
-        private readonly string _username;
-        private readonly string _password;
-        private readonly string _domain;
-
-        public string UserName
-        {
-            get { return _username; }
-        }
-
-        public string Password
-        {
-            get { return _password; }
-        }
-
-        public string Domain
-        {
-            get { return _domain; }
-        }
-
-        public SafeFreeNtlmCredentials(string username, string password, string domain)
-            : base(IntPtr.Zero, false)
-        {
-            _username = username;
-            _password = password;
-            _domain = domain;
-        }
-
-        public override bool IsInvalid
-        {
-            get { return false; }
-        }
-
-        protected override bool ReleaseHandle()
-        {
-            return true;
-        }
-    }
-
-    internal sealed class SafeDeleteNtlmContext : SafeHandle
-    {
-        private readonly SafeFreeNtlmCredentials _credential;
-        private readonly uint _flags;
-        private SafeNtlmKeyHandle _serverSignKey;
-        private SafeNtlmKeyHandle _serverSealKey;
-        private SafeNtlmKeyHandle _clientSignKey;
-        private SafeNtlmKeyHandle _clientSealKey;
-
-        public uint Flags
-        {
-            get { return _flags;  }
-        }
-
-        public SafeDeleteNtlmContext(SafeFreeNtlmCredentials credential, uint flags)
-            : base(IntPtr.Zero, true)
-        {
-            bool ignore = false;
-            credential.DangerousAddRef(ref ignore);
-            _credential = credential;
-            _flags = flags;
-        }
-
-        public override bool IsInvalid
-        {
-            get { return (null == _credential) || _credential.IsInvalid; }
-        }
-
-        public void SetKeys(SafeNtlmBufferHandle sessionKey)
-        {
-            Interop.HeimdalNtlm.CreateKeys(sessionKey, out _serverSignKey, out _serverSealKey, out _clientSignKey, out _clientSealKey);
-        }
-
-        public byte[] MakeSignature(bool isSend, byte[] buffer, int offset, int count)
-        {
-            if (isSend)
-            {
-                return _clientSignKey.Sign(_clientSealKey, buffer, offset, count);
-            }
-            else
-            {
-                return _serverSignKey.Sign(_serverSealKey, buffer, offset, count);
-            }
-        }
-
-        public byte[] EncryptOrDecrypt(bool isEncrypt, byte[] buffer, int offset, int count)
-        {
-            if (isEncrypt)
-            {
-                return _clientSealKey.SealOrUnseal(true, buffer, offset, count);
-            }
-            else
-            {
-                return _serverSealKey.SealOrUnseal(false, buffer, offset, count);
-            }
-        }
-
-        protected override bool ReleaseHandle()
-        {
-            _credential.DangerousRelease();
-            if ((null != _clientSignKey) && !_clientSignKey.IsInvalid)
-            {
-                _clientSignKey.Dispose();
-            }
-            if ((null != _clientSealKey) && !_clientSealKey.IsInvalid)
-            {
-                _clientSealKey.Dispose();
-            }
-            if ((null != _serverSignKey) && !_serverSignKey.IsInvalid)
-            {
-                _serverSignKey.Dispose();
-            }
-            if ((null != _serverSealKey) && !_serverSealKey.IsInvalid)
-            {
-                _serverSealKey.Dispose();
-            }
             return true;
         }
     }

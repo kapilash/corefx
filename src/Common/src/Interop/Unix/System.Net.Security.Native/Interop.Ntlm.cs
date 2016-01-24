@@ -12,22 +12,25 @@ internal static partial class Interop
     internal static partial class NetSecurity
     {
         public const int MD5DigestLength = 16;
-        [DllImport(Interop.Libraries.SecurityNative)]
-        internal static extern int HeimNtlmFreeBuf(ref ntlm_buf data);
+        [DllImport(Interop.Libraries.SecurityNative, EntryPoint="NetSecurity_HeimNtlmFreeBuf")]
+        internal static extern int HeimNtlmFreeBuf(ref IntPtr bufferHandle);
 
-        [DllImport(Interop.Libraries.SecurityNative)]
-        internal static extern int HeimNtlmEncodeType1(uint flags, SafeNtlmBufferHandle data);
+        [DllImport(Interop.Libraries.SecurityNative, EntryPoint="NetSecurity_CopyBuffer")]
+        internal static extern int CopyBuffer(SafeNtlmBufferHandle data, byte[] buffer, int offset);
 
-        [DllImport(Interop.Libraries.SecurityNative)]
+        [DllImport(Interop.Libraries.SecurityNative, EntryPoint="NetSecurity_HeimNtlmEncodeType1")]
+        internal static extern int HeimNtlmEncodeType1(uint flags, out SafeNtlmBufferHandle data, out int length);
+
+        [DllImport(Interop.Libraries.SecurityNative, EntryPoint="NetSecurity_HeimNtlmDecodeType2")]
         internal static extern int HeimNtlmDecodeType2(byte[] data, int offset, int count, out SafeNtlmType2Handle type2Handle);
 
-        [DllImport(Interop.Libraries.SecurityNative)]
+        [DllImport(Interop.Libraries.SecurityNative, EntryPoint="NetSecurity_HeimNtlmFreeType2")]
         internal static extern int HeimNtlmFreeType2(IntPtr type2Handle);
 
-        [DllImport(Interop.Libraries.SecurityNative, CharSet = CharSet.Ansi)]
-        internal static extern int HeimNtlmNtKey(string password, SafeNtlmBufferHandle key);
+        [DllImport(Interop.Libraries.SecurityNative, EntryPoint="NetSecurity_HeimNtlmNtKey", CharSet = CharSet.Ansi)]
+        internal static extern int HeimNtlmNtKey(string password, out SafeNtlmBufferHandle key, out int length);
 
-        [DllImport(Interop.Libraries.SecurityNative, CharSet = CharSet.Ansi)]
+        [DllImport(Interop.Libraries.SecurityNative, EntryPoint="NetSecurity_HeimNtlmCalculateResponse", CharSet = CharSet.Ansi)]
         internal static extern int HeimNtlmCalculateResponse(
             bool isLM,
             SafeNtlmBufferHandle key,
@@ -36,9 +39,10 @@ internal static partial class Interop
             string target,
             byte[] baseSessionKey,
             int baseSessionKeyLen,
-            SafeNtlmBufferHandle answer);
+            out SafeNtlmBufferHandle answer,
+            out int ansLength);
 
-        [DllImport(Interop.Libraries.SecurityNative, CharSet = CharSet.Ansi)]
+        [DllImport(Interop.Libraries.SecurityNative, EntryPoint="NetSecurity_CreateType3Message", CharSet = CharSet.Ansi)]
         internal static extern int CreateType3Message(
             SafeNtlmBufferHandle key,
             SafeNtlmType2Handle type2Handle,
@@ -49,8 +53,10 @@ internal static partial class Interop
             SafeNtlmBufferHandle ntlmResponse,
             byte [] baseSessionKey,
             int baseSessionKeyLen,
-            SafeNtlmBufferHandle sessionKey,
-            SafeNtlmBufferHandle data
+            out SafeNtlmBufferHandle sessionKey,
+            out int sessionKeyLen,
+            out SafeNtlmBufferHandle data,
+            out int dataLen
             );
 
         internal partial class NtlmFlags
@@ -65,21 +71,18 @@ internal static partial class Interop
             internal const uint NTLMSSP_NEGOTIATE_128 = 0x20000000;
             internal const uint NTLMSSP_NEGOTIATE_KEY_EXCH = 0x40000000;
         }
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct ntlm_buf
-        {
-            internal size_t length;
-            internal IntPtr data;
-        }
         
-        internal static byte[] EVPDigest(SafeNtlmBufferHandle key, byte[] input, int inputlen, out uint outputlen)
+        internal static byte[] EVPDigest(byte[] key, byte[] input, int inputlen, out uint outputlen)
         {
             byte[] output = new byte[Interop.Crypto.EVP_MAX_MD_SIZE];
             outputlen = 0;
             using (SafeEvpMdCtxHandle ctx = Interop.Crypto.EvpMdCtxCreate(Interop.Crypto.EvpMd5()))
-            unsafe {
-                Check(Interop.Crypto.EvpDigestUpdate(ctx, (byte*)key.Value.ToPointer(), key.Length));
+            unsafe
+            {
+                fixed (byte *keyPtr = key)
+                {
+                    Check(Interop.Crypto.EvpDigestUpdate(ctx, keyPtr, key.Length));
+                }
                 fixed (byte* inPtr = input)
                 {
                     Check(Interop.Crypto.EvpDigestUpdate(ctx, inPtr, inputlen));

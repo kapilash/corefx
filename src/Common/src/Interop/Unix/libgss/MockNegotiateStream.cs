@@ -31,7 +31,7 @@ namespace MockNegotiateStream
 
     using OM_uint32 = System.UInt32;
     using GssFlags = Interop.libgssapi.GssFlags;
-    using NtlmFlags = Interop.libheimntlm.NtlmFlags;
+    using NtlmFlags = Interop.NetSecurity.NtlmFlags;
 
     internal class MockCredential
     {
