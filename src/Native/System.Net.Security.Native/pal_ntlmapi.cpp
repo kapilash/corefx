@@ -9,6 +9,8 @@
 #include "pal_utilities.h"
 #include <stddef.h>
 #include <assert.h>
+#include <time.h>
+#include "heimntlm.h"
 #include "openssl/hmac.h"
 #include "openssl/evp.h"
 

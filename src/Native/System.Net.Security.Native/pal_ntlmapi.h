@@ -3,9 +3,6 @@
 
 #pragma once
 
-#include <time.h>
-#include "heimntlm.h"
-
 enum NtlmFlags : int32_t
 {
     PAL_NTLMSSP_NEGOTIATE_UNICODE = 0x1,
@@ -18,6 +15,9 @@ enum NtlmFlags : int32_t
     PAL_NTLMSSP_NEGOTIATE_128 = 0x20000000,
     PAL_NTLMSSP_NEGOTIATE_KEY_EXCH = 0x40000000,
 };
+
+struct ntlm_buf;
+struct ntlm_type2;
 
 /*
 Shims heim_ntlm_free_buf method.
