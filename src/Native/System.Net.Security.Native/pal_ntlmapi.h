@@ -22,12 +22,12 @@ struct ntlm_type2;
 /*
 Shims heim_ntlm_free_buf method.
 */
-extern "C" void NetSecurity_HeimNtlmFreeBuf(ntlm_buf** data);
+extern "C" void NetSecurity_HeimNtlmFreeBuf(ntlm_buf* data);
 
 /*
 Copies data from ntlm_buffer into an array of given size, from the offset.
 */
-extern "C" void NetSecurity_CopyBuffer(const ntlm_buf* bufferHandle, uint8_t *bytes, int32_t offset);
+extern "C" void NetSecurity_CopyBuffer(const ntlm_buf* bufferHandle, uint8_t *bytes, uint32_t capacity, uint32_t offset);
 
 /*
 Shims heim_ntlm_encode_type1 method.

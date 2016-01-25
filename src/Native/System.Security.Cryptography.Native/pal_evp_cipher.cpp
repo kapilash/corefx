@@ -242,7 +242,7 @@ extern "C" const EVP_CIPHER* CryptoNative_EvpRc4()
     return EVP_rc4();
 }
 
-extern "C" void CryptoNative_EvpCipher(EVP_CIPHER_CTX* ctx, unsigned char* out, const unsigned char *in, uint32_t inl)
+extern "C" void CryptoNative_EvpCipher(EVP_CIPHER_CTX* ctx, uint8_t* out, const uint8_t *in, uint32_t inl)
 {
     EVP_Cipher(ctx, out, in, inl);
 }

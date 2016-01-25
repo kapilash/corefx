@@ -13,10 +13,10 @@ internal static partial class Interop
     {
         public const int MD5DigestLength = 16;
         [DllImport(Interop.Libraries.SecurityNative, EntryPoint="NetSecurity_HeimNtlmFreeBuf")]
-        internal static extern int HeimNtlmFreeBuf(ref IntPtr bufferHandle);
+        internal static extern int HeimNtlmFreeBuf(IntPtr bufferHandle);
 
         [DllImport(Interop.Libraries.SecurityNative, EntryPoint="NetSecurity_CopyBuffer")]
-        internal static extern int CopyBuffer(SafeNtlmBufferHandle data, byte[] buffer, int offset);
+        internal static extern int CopyBuffer(SafeNtlmBufferHandle data, byte[] buffer, int capacity, int offset);
 
         [DllImport(Interop.Libraries.SecurityNative, EntryPoint="NetSecurity_HeimNtlmEncodeType1")]
         internal static extern int HeimNtlmEncodeType1(uint flags, out SafeNtlmBufferHandle data, out int length);
@@ -74,21 +74,16 @@ internal static partial class Interop
         
         internal static byte[] EVPDigest(byte[] key, byte[] input, int inputlen, out uint outputlen)
         {
+            //reference doc: http://msdn.microsoft.com/en-us/library/cc236700.aspx
             byte[] output = new byte[Interop.Crypto.EVP_MAX_MD_SIZE];
             outputlen = 0;
             using (SafeEvpMdCtxHandle ctx = Interop.Crypto.EvpMdCtxCreate(Interop.Crypto.EvpMd5()))
             unsafe
             {
-                fixed (byte *keyPtr = key)
+                fixed (byte *keyPtr = key, inPtr = input, outPtr = output)
                 {
                     Check(Interop.Crypto.EvpDigestUpdate(ctx, keyPtr, key.Length));
-                }
-                fixed (byte* inPtr = input)
-                {
                     Check(Interop.Crypto.EvpDigestUpdate(ctx, inPtr, inputlen));
-                }
-                fixed (byte* outPtr = output)
-                {
                     Check(Interop.Crypto.EvpDigestFinalEx(ctx, outPtr, ref outputlen));
                 }
             }

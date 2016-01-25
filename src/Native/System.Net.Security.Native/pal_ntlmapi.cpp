@@ -26,23 +26,33 @@ static_assert(PAL_NTLMSSP_NEGOTIATE_KEY_EXCH == NTLM_NEG_KEYEX, "");
 
 const int32_t MD5_DIGEST_LENGTH = 16;
 
-static inline int32_t NetSecurity_SetBufferLength(int32_t status, ntlm_buf *bufferHandle, int32_t *outLength)
+static inline int32_t NetSecurity_SetBufferLength(int32_t status, ntlm_buf **bufferHandle, int32_t *outLength)
 {
-    *outLength = static_cast<int32_t>(bufferHandle->length);
+    if (status != 0)
+    {
+        delete *bufferHandle;
+        *bufferHandle = nullptr;
+        *outLength = 0;
+        return status;
+    }
+    *outLength = static_cast<int32_t>((*bufferHandle)->length);
     return status;
 }
 
-extern "C" void NetSecurity_HeimNtlmFreeBuf(ntlm_buf** data)
+extern "C" void NetSecurity_HeimNtlmFreeBuf(ntlm_buf* data)
 {
     assert(data != nullptr);
-    heim_ntlm_free_buf(*data);
-    delete *data;
+    heim_ntlm_free_buf(data);
+    delete data;
 }
 
-extern "C" void NetSecurity_CopyBuffer(const ntlm_buf* bufferHandle, uint8_t *bytes, int32_t offset)
+extern "C" void NetSecurity_CopyBuffer(const ntlm_buf* bufferHandle, uint8_t *bytes, uint32_t capacity, uint32_t offset)
 {
     if (bufferHandle == nullptr)
+    {
         return;
+    }
+    assert(bufferHandle->length <= (capacity - offset));
     memcpy(bytes + UnsignedCast(offset), bufferHandle->data, bufferHandle->length);
 }
 
@@ -53,7 +63,7 @@ extern "C" int32_t NetSecurity_HeimNtlmEncodeType1(uint32_t flags, ntlm_buf** ou
     memset(&type1, 0, sizeof(ntlm_type1));
     type1.flags = flags;
     *outBufferHandle = new ntlm_buf();
-    return NetSecurity_SetBufferLength(heim_ntlm_encode_type1(&type1, *outBufferHandle), *outBufferHandle, outLength);
+    return NetSecurity_SetBufferLength(heim_ntlm_encode_type1(&type1, *outBufferHandle), outBufferHandle, outLength);
 }
 
 extern "C" int32_t NetSecurity_HeimNtlmDecodeType2(uint8_t* data, int32_t offset, int32_t count, ntlm_type2** type2)
@@ -83,7 +93,7 @@ extern "C" int32_t NetSecurity_HeimNtlmNtKey(const char* password, ntlm_buf** ou
 {
     assert(outBufferHandle != nullptr);
     *outBufferHandle = new ntlm_buf();
-    return NetSecurity_SetBufferLength(heim_ntlm_nt_key(password, *outBufferHandle), *outBufferHandle, outLength);
+    return NetSecurity_SetBufferLength(heim_ntlm_nt_key(password, *outBufferHandle), outBufferHandle, outLength);
 }
 
 extern "C" int32_t NetSecurity_HeimNtlmCalculateResponse(int32_t isLM, const ntlm_buf* key, ntlm_type2* type2, char* username, char* target, uint8_t* baseSessionKey, int32_t baseSessionKeyLen,  ntlm_buf** outBufferHandle, int32_t *outLength)
@@ -98,7 +108,7 @@ extern "C" int32_t NetSecurity_HeimNtlmCalculateResponse(int32_t isLM, const ntl
     if (isLM)
     {
         return NetSecurity_SetBufferLength(heim_ntlm_calculate_lm2(key->data, key->length, username, target, type2->challenge, baseSessionKey, *outBufferHandle),
-                                           *outBufferHandle,
+                                           outBufferHandle,
                                            outLength);
     }
     else
@@ -106,13 +116,13 @@ extern "C" int32_t NetSecurity_HeimNtlmCalculateResponse(int32_t isLM, const ntl
         if (type2->targetinfo.length == 0)
         {
             return NetSecurity_SetBufferLength(heim_ntlm_calculate_ntlm1(key->data, key->length, type2->challenge, *outBufferHandle),
-                                               *outBufferHandle,
+                                               outBufferHandle,
                                                outLength);
         }
         else 
         {
             return NetSecurity_SetBufferLength(heim_ntlm_calculate_ntlm2(key->data, key->length, username, target, type2->challenge, &type2->targetinfo, baseSessionKey, *outBufferHandle),
-                                               *outBufferHandle,
+                                               outBufferHandle,
                                                outLength);
         }
     }
@@ -194,12 +204,9 @@ extern "C" int32_t NetSecurity_CreateType3Message(ntlm_buf* key, ntlm_type2* typ
         ntlm_buf blob = { .length = MD5_DIGEST_LENGTH, .data = ntlmResponse->data };
         status = NetSecurity_build_ntlm2_master(baseSessionKey, baseSessionKeyLen, &blob, *outSessionHandle, &masterKey);
     }
-    status = NetSecurity_SetBufferLength(status, *outSessionHandle, outSessionKeyLen);
+    status = NetSecurity_SetBufferLength(status, outSessionHandle, outSessionKeyLen);
     if (status != 0)
     {
-        delete *outSessionHandle;
-        *outSessionHandle = nullptr;
-        *outSessionKeyLen = 0;
         return status;
     }
     
@@ -222,5 +229,5 @@ extern "C" int32_t NetSecurity_CreateType3Message(ntlm_buf* key, ntlm_type2* typ
         // in case of v2, masterKey.data is created by NetSecurity_build_ntlm2_master function and free_buf cannot be called.
         delete[] static_cast<uint8_t*>(masterKey.data);
     }
-    return NetSecurity_SetBufferLength(status, *outBufferHandle, outLength);
+    return NetSecurity_SetBufferLength(status, outBufferHandle, outLength);
  }

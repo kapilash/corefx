@@ -22,10 +22,12 @@ namespace Microsoft.Win32.SafeHandles
         {
         }
 
-        public byte[] ToByteArray(int length, int offset) {
+        public byte[] ToByteArray(int length, int offset)
+        {
             Debug.Assert(length >= 0, "negative length of buffer");
+            Debug.Assert(offset < length, "invalid offset for  buffer");
             byte[] target = new byte[length];
-            Interop.NetSecurity.CopyBuffer(this, target, offset);
+            Interop.NetSecurity.CopyBuffer(this, target, capacity: length, offset: offset);
             return target;
         }
             
@@ -34,12 +36,9 @@ namespace Microsoft.Win32.SafeHandles
             get { return handle == IntPtr.Zero; }
         }
 
-        // Note that _value should never be freed directly. For input
-        // buffer, it is owned by the caller and for output buffer,
-        // it is a by-product of some other allocation
         protected override bool ReleaseHandle()
         {
-            Interop.NetSecurity.HeimNtlmFreeBuf(ref handle);
+            Interop.NetSecurity.HeimNtlmFreeBuf(handle);
             SetHandle(IntPtr.Zero);
             return true;
         }
@@ -247,29 +246,16 @@ namespace Microsoft.Win32.SafeHandles
 
                 SafeNtlmBufferHandle sessionKeyHandle = null;
                 int sessionKeyLen;
-                SafeNtlmBufferHandle outputData = null ; // Should not be disposed on success
+                SafeNtlmBufferHandle outputData = null;
                 int outputDataLen = 0;
-                try
-                {
-                    status = Interop.NetSecurity.CreateType3Message(key, _type2Handle, username, domain, flags, lmResponse, ntResponse,
-                                                                    baseSessionKey, baseSessionKey.Length, out sessionKeyHandle, out sessionKeyLen, out outputData, out outputDataLen);
-                    Interop.NetSecurity.HeimdalNtlmException.AssertOrThrowIfError(
-                        "CreateType3Message failed", status);
-                    using (sessionKeyHandle)
-                    {
-                        sessionKey = sessionKeyHandle.ToByteArray(sessionKeyLen,0);
-                    }
-                }
-                catch
-                {
-                    if (outputData != null)
-                    {
-                        outputData.Dispose();
-                    }
-                }
-
+                status = Interop.NetSecurity.CreateType3Message(key, _type2Handle, username, domain, flags, lmResponse, ntResponse, baseSessionKey,
+                                                                baseSessionKey.Length, out sessionKeyHandle, out sessionKeyLen, out outputData,
+                                                                out outputDataLen);
+                Interop.NetSecurity.HeimdalNtlmException.AssertOrThrowIfError("CreateType3Message failed", status);
+                using (sessionKeyHandle)
                 using (outputData)
                 {
+                    sessionKey = sessionKeyHandle.ToByteArray(sessionKeyLen,0);
                     return outputData.ToByteArray(outputDataLen, 0);
                 }
             }
