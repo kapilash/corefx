@@ -106,8 +106,8 @@ namespace Microsoft.Win32.SafeHandles
         public byte[] Sign(SafeNtlmKeyHandle sealingKey, byte[] buffer, int offset, int count)
         {
             Debug.Assert(!_isSealingKey, "Cannot sign with sealing key");
-            Debug.Assert(offset > 0 && offset < buffer.Length, "Cannot sign with invalid offset " + offset);
-            Debug.Assert((count + offset) < buffer.Length, "Cannot sign with invalid count " + count);
+            Debug.Assert(offset >= 0 && offset < buffer.Length, "Cannot sign with invalid offset " + offset);
+            Debug.Assert((count + offset) <= buffer.Length, "Cannot sign with invalid count " + count);
 
             // reference for signing a message: https://msdn.microsoft.com/en-us/library/cc236702.aspx
             const uint Version = 0x00000001;
@@ -152,8 +152,8 @@ namespace Microsoft.Win32.SafeHandles
         {
             //Message Confidentiality. Reference: https://msdn.microsoft.com/en-us/library/cc236707.aspx
             Debug.Assert(_isSealingKey, "Cannot seal or unseal with signing key");
-            Debug.Assert(offset > 0 && offset < buffer.Length, "Cannot sign with invalid offset " + offset);
-            Debug.Assert((count + offset) < buffer.Length, "Cannot sign with invalid count " + count);
+            Debug.Assert(offset >= 0 && offset < buffer.Length, "Cannot sign with invalid offset " + offset);
+            Debug.Assert((count + offset) <= buffer.Length, "Cannot sign with invalid count ");
 
             unsafe
             {

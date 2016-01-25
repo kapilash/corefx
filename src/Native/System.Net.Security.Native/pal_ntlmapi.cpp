@@ -36,7 +36,7 @@ extern "C" void NetSecurity_HeimNtlmFreeBuf(ntlm_buf** data)
 {
     assert(data != nullptr);
     heim_ntlm_free_buf(*data);
-    delete data;
+    delete *data;
 }
 
 extern "C" void NetSecurity_CopyBuffer(const ntlm_buf* bufferHandle, uint8_t *bytes, int32_t offset)
