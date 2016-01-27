@@ -9,7 +9,8 @@ if (HAVE_HEIMNTLM_HEADERS)
    include_directories(/usr/heimdal/include)
 
    if(LIB_HEIMNTLM STREQUAL LIB_HEIMNTLM-NOTFOUND)
-    message(FATAL_ERROR "Cannot find libheimntlm.so and System.Net.Security.Native cannot build without it. Try installing libheimntlm (or the appropriate package for your platform)")
+       message(FATAL_ERROR "Cannot find libheimntlm.so and System.Net.Security.Native cannot build without it. Try installing libheimntlm (or the appropriate package for your platform)")
+   endif()
 
 
    set(NATIVENTLM_SOURCES
