@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-__scriptpath=/Users/kapilash/src/corefx
+__scriptpath=$HOME/src/corefx
 __packageroot=$__scriptpath/packages
 __sourceroot=$__scriptpath/src
 __nugetpath=$__packageroot/NuGet.exe
@@ -44,7 +44,7 @@ echo Build Exit Code = $BUILDERRORLEVEL
 
 if [ $BUILDERRORLEVEL -eq 0 ]; then
     echo "Build succeeded. Copying the file"
-    cp $HOME/src/corefx/bin/OSX.AnyCPU.Debug/System.Net.Security/System.Net.Security.exe $HOME/net/net-demo/beta8/.
+    cp $HOME/src/corefx/bin/Linux.AnyCPU.Debug/System.Net.Security/System.Net.Security.exe $HOME/net/net-demo/beta8/.
     echo "done"
 else
     exit $BUILDERRORLEVEL
@@ -58,6 +58,6 @@ BUILDERRORLEVEL=$?
 
 if [ $BUILDERRORLEVEL -eq 0 ]; then
     echo "Build succeeded. Copying the file"
-    cp $HOME/src/corefx/bin/OSX.x64.Debug/Native/System.Net.Security.Native.dylib $HOME/net/net-demo/beta8/.
+    cp $HOME/src/corefx/bin/Linux.x64.Debug/Native/System.Net.Security.Native.so $HOME/net/net-demo/beta8/.
 fi
 exit $BUILDERRORLEVEL
