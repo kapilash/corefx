@@ -57,4 +57,4 @@ extern "C" int32_t NetSecurity_HeimNtlmCalculateResponse(int32_t isLM, const ntl
 /*
 Implements Type3 msg proccessing logic
 */
-extern "C" int32_t NetSecurity_CreateType3Message(ntlm_buf* key, ntlm_type2* type2, char* username, char* domain, uint32_t flags, ntlm_buf* lmResponse, ntlm_buf* ntlmResponse, uint8_t* baseSessionKey, int32_t baseSessionKeyLen, ntlm_buf** outSessionHandle, int32_t *outSessionKeyLen, ntlm_buf** outBufferHandle, int32_t *outLength);
+extern "C" int32_t NetSecurity_CreateType3Message(ntlm_buf* key, ntlm_type2* type2, const char* username, const char* domain, uint32_t flags, ntlm_buf* lmResponse, ntlm_buf* ntlmResponse, uint8_t* baseSessionKey, int32_t baseSessionKeyLen, ntlm_buf** outSessionHandle, int32_t *outSessionKeyLen, ntlm_buf** outBufferHandle, int32_t *outLength);

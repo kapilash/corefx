@@ -173,7 +173,7 @@ static int32_t NetSecurity_build_ntlm2_master(uint8_t* key, int32_t keylen, ntlm
     return status;
 }
 
-extern "C" int32_t NetSecurity_CreateType3Message(ntlm_buf* key, ntlm_type2* type2, char* username, char* domain, uint32_t flags, ntlm_buf* lmResponse, ntlm_buf* ntlmResponse, uint8_t* baseSessionKey, int32_t baseSessionKeyLen, ntlm_buf** outSessionHandle, int *outSessionKeyLen, ntlm_buf** outBufferHandle, int32_t *outLength)
+extern "C" int32_t NetSecurity_CreateType3Message(ntlm_buf* key, ntlm_type2* type2, const char* username, const char* domain, uint32_t flags, ntlm_buf* lmResponse, ntlm_buf* ntlmResponse, uint8_t* baseSessionKey, int32_t baseSessionKeyLen, ntlm_buf** outSessionHandle, int *outSessionKeyLen, ntlm_buf** outBufferHandle, int32_t *outLength)
 {
     assert(key != nullptr);
     assert(type2 != nullptr);
@@ -182,8 +182,8 @@ extern "C" int32_t NetSecurity_CreateType3Message(ntlm_buf* key, ntlm_type2* typ
     static char* workstation = static_cast<char*>(calloc(1, sizeof(char))); // empty string
     ntlm_type3 type3;
     memset(&type3, 0, sizeof(ntlm_type3));
-    type3.username = username;
-    type3.targetname = domain;
+    type3.username = const_cast<char*>(username);
+    type3.targetname = const_cast<char*>(domain);
     type3.lm = *lmResponse;
     type3.ntlm = *ntlmResponse;
     type3.ws = workstation;

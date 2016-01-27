@@ -206,7 +206,7 @@ namespace Microsoft.Win32.SafeHandles
     /// </summary>
     internal sealed class SafeNtlmType3Handle : SafeHandle
     {
-        private readonly SafeNtlmType2Handle _type2Handle;
+        private SafeNtlmType2Handle _type2Handle;
         public SafeNtlmType3Handle(byte[] type2Data, int offset, int count) : base(IntPtr.Zero, true)
         {
             int status = Interop.NetSecurity.HeimNtlmDecodeType2(type2Data, offset, count, out _type2Handle);
@@ -266,6 +266,7 @@ namespace Microsoft.Win32.SafeHandles
             if (disposing)
             {
                 _type2Handle.Dispose();
+                _type2Handle = null;
             }
             base.Dispose(disposing);
         }

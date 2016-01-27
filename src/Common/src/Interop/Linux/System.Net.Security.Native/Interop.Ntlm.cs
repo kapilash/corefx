@@ -11,6 +11,8 @@ internal static partial class Interop
 {
     internal static partial class NetSecurity
     {
+        // The following constant is used in calculation of NTOWF2
+        // ref: https://msdn.microsoft.com/en-us/library/cc236700.aspx
         public const int MD5DigestLength = 16;
         [DllImport(Interop.Libraries.SecurityNative, EntryPoint="NetSecurity_HeimNtlmFreeBuf")]
         internal static extern int HeimNtlmFreeBuf(IntPtr bufferHandle);

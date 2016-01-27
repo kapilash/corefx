@@ -241,17 +241,6 @@
     <Compile Include="$(CommonPath)\Interop\Unix\libgss\Interop.GssApiException.cs">
       <Link>Common\Interop\Unix\libgss\Interop.GssApiException.cs</Link>
     </Compile>
-    <Compile Include="$(CommonPath)\Interop\Unix\libgss\MockUtils.cs">
-      <Link>Common\Interop\Unix\libgss\MockUtils.cs</Link>
-    </Compile>
-    <Compile Include="$(CommonPath)\Interop\Unix\libgss\MockNegotiateStream.cs">
-      <Link>Common\Interop\Unix\libgss\MockNegotiateStream.cs</Link>
-    </Compile>
-    <Compile Include="$(CommonPath)\Interop\Unix\libgss\Program.cs">
-      <Link>Common\Interop\Unix\libgss\Program.cs</Link>
-    </Compile>
-
-    <Compile Include="System\Net\NegotiateStreamPal.Unix.cs" />
     <Compile Include="$(CommonPath)\Interop\Unix\libssl\SecuritySafeHandles.cs">
       <Link>Common\Interop\Unix\libssl\SecuritySafeHandles.cs</Link>
     </Compile>
@@ -269,18 +258,6 @@
     </Compile>
     <Compile Include="$(CommonPath)\Interop\Unix\libssl\Interop.X509ChannelBindingHash.cs">
       <Link>Common\Interop\Unix\libssl\Interop.X509ChannelBindingHash.cs</Link>
-    </Compile>
-    <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\Interop.Ntlm.cs">
-      <Link>Common\Interop\Unix\System.Net.Security.Native\Interop.Ntlm.cs</Link>
-    </Compile>
-    <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\Interop.HeimdalNtlm.cs">
-      <Link>Common\Interop\Unix\System.Net.Security.Native\Interop.HeimdalNtlm.cs</Link>
-    </Compile>
-    <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\Interop.HeimdalNtlmException.cs">
-      <Link>Common\Interop\Unix\System.Net.Security.Native\Interop.HeimdalNtlmException.cs</Link>
-    </Compile>    
-    <Compile Include="$(CommonPath)\Microsoft\Win32\SafeHandles\NtlmSecuritySafeHandles.cs">
-      <Link>Common\Microsoft\Win32\SafeHandles\NtlmSecuritySafeHandles.cs</Link>
     </Compile>
     <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\MockHandles.cs">
       <Link>Common\Interop\Unix\System.Net.Security.Native\MockHandles.cs</Link>
@@ -364,7 +341,32 @@
       <Link>Common\Microsoft\Win32\SafeHandles\Asn1SafeHandles.Unix.cs</Link>
     </Compile>
   </ItemGroup>
-  
+
+  <ItemGroup Condition=" '$(TargetsUnix)' == 'true' ">
+    <Compile Include="$(CommonPath)\Interop\Linux\System.Net.Security.Native\Interop.Ntlm.cs">
+      <Link>Common\Interop\Linux\System.Net.Security.Native\Interop.Ntlm.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Linux\System.Net.Security.Native\Interop.HeimdalNtlm.cs">
+      <Link>Common\Interop\Linux\System.Net.Security.Native\Interop.HeimdalNtlm.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Linux\System.Net.Security.Native\Interop.HeimdalNtlmException.cs">
+      <Link>Common\Interop\Linux\System.Net.Security.Native\Interop.HeimdalNtlmException.cs</Link>
+    </Compile>    
+    <Compile Include="$(CommonPath)\Microsoft\Win32\SafeHandles\NtlmSecuritySafeHandles.cs">
+      <Link>Common\Microsoft\Win32\SafeHandles\NtlmSecuritySafeHandles.cs</Link>
+    </Compile>
+
+    <Compile Include="$(CommonPath)\Interop\Unix\libgss\MockUtils.cs">
+      <Link>Common\Interop\Unix\libgss\MockUtils.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\libgss\MockNegotiateStream.cs">
+      <Link>Common\Interop\Unix\libgss\MockNegotiateStream.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\libgss\Program.cs">
+      <Link>Common\Interop\Unix\libgss\Program.cs</Link>
+    </Compile>
+    <Compile Include="System\Net\NegotiateStreamPal.Unix.cs" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="project.json" />
   </ItemGroup>
