@@ -73,7 +73,6 @@ internal static partial class Interop
             internal const uint NTLMSSP_NEGOTIATE_128 = 0x20000000;
             internal const uint NTLMSSP_NEGOTIATE_KEY_EXCH = 0x40000000;
         }
-
         internal static byte[] EVPDigest(byte[] key, byte[] input, int inputlen, out uint outputlen)
         {
             //reference doc: http://msdn.microsoft.com/en-us/library/cc236700.aspx

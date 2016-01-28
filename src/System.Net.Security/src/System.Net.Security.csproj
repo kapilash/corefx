@@ -6,8 +6,8 @@
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.props))\dir.props" />
   <PropertyGroup>
     <AssemblyName>System.Net.Security</AssemblyName>
-    <AssemblyVersion>4.0.0.0</AssemblyVersion>
-    <OutputType>Library</OutputType>
+    <AssemblyVersion>4.0.0</AssemblyVersion>
+    <OutputType>exe</OutputType>
     <ProjectGuid>{89F37791-6254-4D60-AB96-ACD3CCA0E771}</ProjectGuid>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants>$(DefineConstants);FEATURE_CORECLR</DefineConstants>
@@ -241,8 +241,17 @@
     <Compile Include="$(CommonPath)\Interop\Unix\Interop.Errors.cs">
       <Link>Common\Interop\Unix\Interop.Errors.cs</Link>
     </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\libgss\Interop.GssApi.cs">
+      <Link>Common\Interop\Unix\libgss\Interop.GssApi.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\libgss\Interop.GssApiException.cs">
+      <Link>Common\Interop\Unix\libgss\Interop.GssApiException.cs</Link>
+    </Compile>
     <Compile Include="$(CommonPath)\Interop\Unix\libssl\SecuritySafeHandles.cs">
       <Link>Common\Interop\Unix\libssl\SecuritySafeHandles.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\libgss\SecuritySafeHandles.cs">
+      <Link>Common\Interop\Unix\libgss\SecuritySafeHandles.cs</Link>
     </Compile>
     <Compile Include="$(CommonPath)\Interop\Unix\libssl\StreamSizes.cs">
       <Link>Common\Interop\Unix\libssl\StreamSizes.cs</Link>
@@ -255,6 +264,12 @@
     </Compile>
     <Compile Include="$(CommonPath)\Interop\Unix\libssl\Interop.X509ChannelBindingHash.cs">
       <Link>Common\Interop\Unix\libssl\Interop.X509ChannelBindingHash.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Linux\System.Net.Security.Native\MockHandles.cs">
+      <Link>Common\Interop\Linux\System.Net.Security.Native\MockHandles.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\Interop.Gss.cs">
+      <Link>Common\Interop\Unix\System.Net.Security.Native\Interop.Gss.cs</Link>
     </Compile>
     <Compile Include="$(CommonPath)\Interop\Unix\System.Security.Cryptography.Native\Interop.ASN1.cs">
       <Link>Common\Interop\Unix\System.Security.Cryptography.Native\Interop.ASN1.cs</Link>
@@ -295,9 +310,24 @@
     <Compile Include="$(CommonPath)\Interop\Unix\System.Security.Cryptography.Native\Interop.X509StoreCtx.cs">
       <Link>Common\Interop\Unix\System.Security.Cryptography.Native\Interop.X509StoreCtx.cs</Link>
     </Compile>
-    <Compile Include="$(CommonPath)\Interop\Unix\System.Net.Security.Native\Interop.Initialization.cs">
-      <Link>Common\Interop\Unix\System.Net.Security.Native\Interop.Initialization.cs</Link>
+    <Compile Include="$(CommonPath)\Interop\Unix\System.Security.Cryptography.Native\Interop.Hmac.cs">
+      <Link>Common\Interop\Unix\System.Security.Cryptography.Native\Interop.Hmac.cs</Link>
     </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\System.Security.Cryptography.Native\Interop.EVP.cs">
+      <Link>Common\Interop\Unix\System.Security.Cryptography.Native\Interop.EVP.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Microsoft\Win32\SafeHandles\SafeEvpMdCtxHandle.Unix.cs">
+      <Link>Microsoft\Win32\SafeHandles\SafeEvpMdCtxHandle.Unix.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Microsoft\Win32\SafeHandles\SafeHmacCtxHandle.Unix.cs">
+      <Link>Common\Microsoft\Win32\SafeHandles\SafeHmacCtxHandle.Unix.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Microsoft\Win32\SafeHandles\SafeEvpCipherCtxHandle.Unix.cs">
+      <Link>Common\Microsoft\Win32\SafeHandles\SafeEvpCipherCtxHandle.Unix.cs</Link>
+    </Compile>
+     <Compile Include="$(CommonPath)\Interop\Unix\System.Security.Cryptography.Native\Interop.EVP.Cipher.cs">
+      <Link>Common\Interop\Unix\System.Security.Cryptography.Native\Interop.EVP.Cipher.cs</Link>
+    </Compile>    
     <Compile Include="$(CommonPath)\Microsoft\Win32\SafeHandles\SafeX509Handles.Unix.cs">
       <Link>Common\Microsoft\Win32\SafeHandles\SafeX509Handles.Unix.cs</Link>
     </Compile>
@@ -320,7 +350,32 @@
       <Link>Common\System\Net\ContextAwareResult.Unix.cs</Link>
     </Compile>
   </ItemGroup>
-  
+
+  <ItemGroup Condition=" '$(TargetsLinux)' == 'true' ">
+    <Compile Include="$(CommonPath)\Interop\Linux\System.Net.Security.Native\Interop.Ntlm.cs">
+      <Link>Common\Interop\Linux\System.Net.Security.Native\Interop.Ntlm.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Linux\System.Net.Security.Native\Interop.HeimdalNtlm.cs">
+      <Link>Common\Interop\Linux\System.Net.Security.Native\Interop.HeimdalNtlm.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Linux\System.Net.Security.Native\Interop.HeimdalNtlmException.cs">
+      <Link>Common\Interop\Linux\System.Net.Security.Native\Interop.HeimdalNtlmException.cs</Link>
+    </Compile>    
+    <Compile Include="$(CommonPath)\Microsoft\Win32\SafeHandles\NtlmSecuritySafeHandles.cs">
+      <Link>Common\Microsoft\Win32\SafeHandles\NtlmSecuritySafeHandles.cs</Link>
+    </Compile>
+
+    <Compile Include="$(CommonPath)\Interop\Unix\libgss\MockUtils.cs">
+      <Link>Common\Interop\Unix\libgss\MockUtils.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\libgss\MockNegotiateStream.cs">
+      <Link>Common\Interop\Unix\libgss\MockNegotiateStream.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Unix\libgss\Program.cs">
+      <Link>Common\Interop\Unix\libgss\Program.cs</Link>
+    </Compile>
+    <Compile Include="System\Net\NegotiateStreamPal.Unix.cs" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="project.json" />
   </ItemGroup>
