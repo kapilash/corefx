@@ -212,6 +212,7 @@ extern "C" int32_t NetSecurity_CreateType3Message(ntlm_buf* key, ntlm_type2* typ
     
     *outBufferHandle = new ntlm_buf();
     type3.sessionkey = masterKey;
+    printf("sessionKey Length = %d \n", *outSessionKeyLen);
     status = heim_ntlm_encode_type3(&type3, *outBufferHandle);
     if (status != 0)
     {

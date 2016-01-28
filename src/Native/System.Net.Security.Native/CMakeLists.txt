@@ -4,7 +4,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 add_definitions(-DPIC=1)
 
-if (HAVE_HEIMNTLM_HEADERS)
+if (CMAKE_SYSTEM_NAME STREQUAL Linux)
    find_library(LIB_HEIMNTLM NAMES heimntlm PATHS /usr/heimdal/lib)
    include_directories(/usr/heimdal/include)
 
@@ -24,12 +24,11 @@ if (HAVE_HEIMNTLM_HEADERS)
 
    target_link_libraries(System.Net.Security.Native
            ${LIB_HEIMNTLM}
+           ${OPENSSL_CRYPTO_LIBRARY}
    )
 
    install (TARGETS System.Net.Security.Native DESTINATION .)
 
-elseif (CMAKE_SYSTEM_NAME STREQUAL Linux)
-   message (FATAL_ERROR "cannot find libheim ntlm headers and System.Net.Security.Native cannot build without it. Try installing libheimntlm (or the appropriate package for your platform)")
 else ()
    message(STATUS "Heimdal shims not needed for this platform")
 endif()
