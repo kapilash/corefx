@@ -12,38 +12,38 @@ internal static partial class Interop
 {
     internal static partial class libgssapi
     {
-        [DllImport(Interop.Libraries.SecurityNative)]
+        [DllImport(Interop.Libraries.NetSecurityNative)]
         internal static extern Status GssReleaseBuffer(
             out Status minorStatus,
             ref gss_buffer_desc buffer);
 
-        [DllImport(Interop.Libraries.SecurityNative)]
+        [DllImport(Interop.Libraries.NetSecurityNative)]
         internal static extern Status GssDisplayStatus(
             out Status minorStatus,
             Status statusValue,
             bool isGssMechCode,
             SafeGssBufferHandle statusString);
 
-        [DllImport(Interop.Libraries.SecurityNative, CharSet = CharSet.Ansi)]
+        [DllImport(Interop.Libraries.NetSecurityNative, CharSet = CharSet.Ansi)]
         internal static extern Status GssImportName(
             out Status minorStatus,
             string inputName,
 	    bool isUser,
             out SafeGssNameHandle outputName);
 
-        [DllImport(Interop.Libraries.SecurityNative)]
+        [DllImport(Interop.Libraries.NetSecurityNative)]
         internal static extern Status GssReleaseName(
             out Status minorStatus,
             ref IntPtr inputName);
 
-        [DllImport(Interop.Libraries.SecurityNative)]
+        [DllImport(Interop.Libraries.NetSecurityNative)]
         internal static extern Status GssAcquireCredSpNego(
             out Status minorStatus,
             SafeGssNameHandle desiredName,
             bool isInitiate,
             out SafeGssCredHandle outputCredHandle);
 
-        [DllImport(Interop.Libraries.SecurityNative, CharSet = CharSet.Ansi)]
+        [DllImport(Interop.Libraries.NetSecurityNative, CharSet = CharSet.Ansi)]
         internal static extern Status GssAcquireCredWithPassword(
             out Status minorStatus,
             SafeGssNameHandle desiredName,
@@ -51,12 +51,12 @@ internal static partial class Interop
             bool isInitiate,
             out SafeGssCredHandle outputCredHandle);
 
-        [DllImport(Interop.Libraries.SecurityNative)]
+        [DllImport(Interop.Libraries.NetSecurityNative)]
         internal static extern Status GssReleaseCred(
             out Status minorStatus,
             ref IntPtr credHandle);
 
-        [DllImport(Interop.Libraries.SecurityNative)]
+        [DllImport(Interop.Libraries.NetSecurityNative)]
         internal static extern Status GssInitSecContext(
             out Status minorStatus,
             SafeGssCredHandle initiatorCredHandle,
@@ -69,7 +69,7 @@ internal static partial class Interop
             SafeGssBufferHandle outputToken,
 	    out uint retFlags);
 
-        [DllImport(Interop.Libraries.SecurityNative)]
+        [DllImport(Interop.Libraries.NetSecurityNative)]
         internal static extern Status GssAcceptSecContext(
             out Status minorStatus,
             ref SafeGssContextHandle contextHandle,
@@ -78,12 +78,12 @@ internal static partial class Interop
             SafeGssBufferHandle outputToken,
             out uint retFlags);
 
-        [DllImport(Interop.Libraries.SecurityNative)]
+        [DllImport(Interop.Libraries.NetSecurityNative)]
         internal static extern Status GssDeleteSecContext(
             out Status minorStatus,
             ref IntPtr contextHandle);
 
-        [DllImport(Interop.Libraries.SecurityNative)]
+        [DllImport(Interop.Libraries.NetSecurityNative)]
         internal static extern Status GssWrap(
             out Status minorStatus,
             SafeGssContextHandle contextHandle,
@@ -93,7 +93,7 @@ internal static partial class Interop
             int count,
             SafeGssBufferHandle outputMessageBuffer);
 
-        [DllImport(Interop.Libraries.SecurityNative)]
+        [DllImport(Interop.Libraries.NetSecurityNative)]
         internal static extern Status GssUnwrap(
             out Status minorStatus,
             SafeGssContextHandle contextHandle,
@@ -102,13 +102,13 @@ internal static partial class Interop
 	    int count,
             SafeGssBufferHandle outputMessageBuffer);
 
-        [DllImport(Interop.Libraries.SecurityNative)]
+        [DllImport(Interop.Libraries.NetSecurityNative)]
         internal static extern Status GssInquireSourceName(
             out Status minorStatus,
             SafeGssContextHandle contextHandle,
             out SafeGssNameHandle srcName);
 
-        [DllImport(Interop.Libraries.SecurityNative)]
+        [DllImport(Interop.Libraries.NetSecurityNative)]
         internal static extern Status GssDisplayName(
             out Status minorStatus,
             SafeGssNameHandle inputName,
