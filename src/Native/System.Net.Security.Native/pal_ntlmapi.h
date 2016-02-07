@@ -24,6 +24,15 @@ struct PAL_NtlmBuffer
 };
 struct ntlm_type2;
 
+struct PAL_NtlmChallengeMsg
+{
+    uint32_t flags;
+    uint32_t targetNameLen;
+    uint8_t* targetName;
+    struct PAL_NtlmBuffer* targetInfo;
+    uint64_t challenge;
+};
+
 /*
 Shims heim_ntlm_free_buf method.
 */

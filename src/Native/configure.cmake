@@ -6,6 +6,7 @@ include(CheckPrototypeDefinition)
 include(CheckStructHasMember)
 include(CheckSymbolExists)
 include(CheckTypeSize)
+include(TestBigEndian)
 
 #CMake does not include /usr/local/include into the include search path
 #thus add it manually. This is required on FreeBSD.
@@ -254,6 +255,8 @@ check_cxx_source_compiles(
     "
     HAVE_RT_MSGHDR
 )
+
+TEST_BIG_ENDIAN(IS_BIGENDIAN_ARCH)
 
 check_include_files(
     linux/rtnetlink.h
