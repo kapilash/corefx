@@ -8,12 +8,14 @@
 #include "pal_types.h"
 #include "pal_ntlmapi.h"
 #include "pal_utilities.h"
+#include "pal_ntlm_utils.h"
 #include <stddef.h>
 #include <assert.h>
 #include <time.h>
 #include "heimntlm.h"
 #include "openssl/hmac.h"
 #include "openssl/evp.h"
+#include <iostream>
 
 static_assert(PAL_NTLMSSP_NEGOTIATE_UNICODE == NTLM_NEG_UNICODE, "");
 static_assert(PAL_NTLMSSP_REQUEST_TARGET == NTLM_NEG_TARGET, "");
@@ -60,11 +62,14 @@ extern "C" int32_t NetSecurityNative_HeimNtlmEncodeType1(uint32_t flags, struct 
 {
     assert(outBuffer != nullptr);
 
-    ntlm_type1 type1;
+/*    ntlm_type1 type1;
     ntlm_buf ntlmBuffer{.length = 0, .data = nullptr};
     memset(&type1, 0, sizeof(ntlm_type1));
-    type1.flags = flags;
-    return NetSecurityNative_SetBufferLength(heim_ntlm_encode_type1(&type1, &ntlmBuffer), &ntlmBuffer, outBuffer);
+    type1.flags = flags;*/
+    outBuffer->length = 0;
+    outBuffer->data = nullptr;
+    NetSecurityNative_NtlmFillNegotiationMsg(flags, nullptr, 0, nullptr, 0, outBuffer);
+    return 0; //NetSecurityNative_SetBufferLength(heim_ntlm_encode_type1(&type1, &ntlmBuffer), &ntlmBuffer, outBuffer);
 }
 
 extern "C" int32_t
@@ -75,6 +80,11 @@ NetSecurityNative_HeimNtlmDecodeType2(uint8_t* data, int32_t offset, int32_t cou
     assert(count >= 0);
     assert(type2 != nullptr);
 
+    struct PAL_NtlmChallengeMsg challengeMsg;
+    uint8_t* testdata = data + UnsignedCast(offset);
+    size_t testlength = UnsignedCast(count);
+    int32_t testret = NetSecurityNative_NtlmReadChallengeMsg(testdata, testlength, &challengeMsg);
+    
     ntlm_buf buffer{.length = UnsignedCast(count), .data = data + offset};
     *type2 = new ntlm_type2();
     int32_t stat = heim_ntlm_decode_type2(&buffer, *type2);
@@ -82,6 +92,36 @@ NetSecurityNative_HeimNtlmDecodeType2(uint8_t* data, int32_t offset, int32_t cou
     {
         delete *type2;
         *type2 = nullptr;
+    }
+
+    if (stat == 0)
+    {
+        uint64_t hNonce = 0;
+        for(int i=0; i<8; i++)
+        {
+            hNonce =  (hNonce << 8)   + (((*type2)->challenge)[i] & 0xff);
+        }
+
+        std::cout << "test ret = " << testret << " challengeMsg details follow " << std::endl;
+        std::cout << "flags: " << challengeMsg.flags << " == " << (*type2)->flags << std::endl;
+        std::cout << "targetNameLen: " << challengeMsg.targetNameLen <<  " == " << strlen((*type2)->targetname) << std::endl;
+        std::cout << "targetName from test: " ;
+        if (challengeMsg.targetName != nullptr)
+        {
+            for(uint32_t i=0; i<challengeMsg.targetNameLen; i++)
+            {
+                std::cout << static_cast<char>(challengeMsg.targetName[i]);
+            }
+            std::cout << std::endl;
+        }
+        else
+        {
+            std::cout << "null" << std::endl;
+        }
+        std::cout << "targetName from heimdal: " << (*type2)->targetname << std::endl ;
+
+        std::cout << "nonce: " << challengeMsg.challenge << " == " << hNonce << std::endl;
+
     }
 
     return stat;
