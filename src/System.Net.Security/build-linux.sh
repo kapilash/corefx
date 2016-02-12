@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-__scriptpath=$HOME/ntlm/corefx
+__scriptpath=$HOME/src/corefx
 __packageroot=$__scriptpath/packages
-__sourceroot=$__scriptpath/ntlm
+__sourceroot=$__scriptpath/src
 __nugetpath=$__packageroot/NuGet.exe
 __nugetconfig=$__sourceroot/NuGet.Config
 __msbuildpackageid="Microsoft.Build.Mono.Debug"
@@ -44,7 +44,7 @@ echo Build Exit Code = $BUILDERRORLEVEL
 
 if [ $BUILDERRORLEVEL -eq 0 ]; then
     echo "Build succeeded. Copying the file"
-    cp $HOME/ntlm/corefx/bin/Linux.AnyCPU.Debug/System.Net.Security/System.Net.Security.exe $HOME/net/net-demo/beta8/.
+    cp $HOME/src/corefx/bin/Linux.AnyCPU.Debug/System.Net.Security/System.Net.Security.exe $HOME/net/net-demo/beta8/.
     echo "done"
 else
     exit $BUILDERRORLEVEL
@@ -52,12 +52,12 @@ fi
 
 echo "building native"
 
-$HOME/ntlm/corefx/build.sh native
+$HOME/src/corefx/build.sh native
 
 BUILDERRORLEVEL=$?
 
 if [ $BUILDERRORLEVEL -eq 0 ]; then
     echo "Build succeeded. Copying the file"
-    cp $HOME/ntlm/corefx/bin/Linux.x64.Debug/Native/System.Net.Security.Native.so $HOME/net/net-demo/beta8/.
+    cp $HOME/src/corefx/bin/Linux.x64.Debug/Native/System.Net.Security.Native.so $HOME/net/net-demo/beta8/.
 fi
 exit $BUILDERRORLEVEL
