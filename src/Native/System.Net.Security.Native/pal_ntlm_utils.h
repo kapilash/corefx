@@ -68,7 +68,7 @@ inline size_t NetSecurityNative_NtlmFillNum(uint8_t* buffer, size_t length, size
     assert(sizeof(T) <= (length - position));
 
     uint8_t temp[sizeof(T)];
-    memcpy(temp, value, sizeof(T));
+    memcpy(temp, &value, sizeof(T));
     for(int i=1; i<=sizeof(T); i++)
     {
 	buffer[i-1] = temp[sizeof(T) - i]; 
@@ -118,6 +118,14 @@ inline size_t NetSecurityNative_NtlmFillSignature(uint8_t* buffer, size_t length
 
     memcpy(buffer, NtlmSignature, NtlmSignatureLength);
     return NtlmSignatureLength;
+}
+
+inline size_t NetSecurityNative_NtlmFillFlags(uint8_t* buffer, size_t length, size_t& position, uint32_t value)
+{
+    assert(buffer != nullptr);
+    assert(4 <= (length - position));
+    size_t r = NetSecurityNative_NtlmFillNum(buffer, length, position, value);
+    return r;
 }
 
 inline int32_t NetSecurityNative_NtlmReadSignature(uint8_t* buffer, size_t length, size_t& position)

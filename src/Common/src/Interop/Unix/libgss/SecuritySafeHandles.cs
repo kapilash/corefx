@@ -11,8 +11,8 @@ namespace System.Net.Security
     internal class SafeFreeGssCredentials : SafeHandle
     {
 #endif
-        private readonly SafeGssCredHandle _credential;
-        public SafeGssCredHandle GssCredential
+        private readonly Interop.NetSecurityNative.SafeGssCredHandle _credential;
+        public Interop.NetSecurityNative.SafeGssCredHandle GssCredential
         {
             get { return _credential; }
         }

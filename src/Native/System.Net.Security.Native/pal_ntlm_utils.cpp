@@ -21,7 +21,7 @@ extern "C" size_t NetSecurityNative_NtlmFillNegotiationMsg(uint32_t flags, const
     assert(position == 8);
     position += NetSecurityNative_NtlmFillNum<uint32_t>(data, netSize, position, NetSecurityNative_NtlmNegotiate);
     assert( position == 12);
-    position += NetSecurityNative_NtlmFillNum<uint32_t>(data, netSize, position, flags);
+    position += NetSecurityNative_NtlmFillFlags(data, netSize, position, flags);
     assert( position = 16);
     struct NetSecurityNative_NameField domainField {.length = domainLen, .maxLength = domainLen, .offset = 0};
     struct NetSecurityNative_NameField wsField {.length = hostLen, .maxLength = hostLen, .offset = 0};

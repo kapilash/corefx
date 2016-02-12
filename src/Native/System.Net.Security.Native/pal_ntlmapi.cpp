@@ -306,6 +306,7 @@ extern "C" int32_t NetSecurityNative_CreateType3Message(struct PAL_NtlmBuffer* k
 
     ntlm_buf ntlmBuffer{.length = 0, .data = nullptr};
     type3.sessionkey = masterKey;
+    printf("\n");
     status = heim_ntlm_encode_type3(&type3, &ntlmBuffer);
     if (status != 0)
     {

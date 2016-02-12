@@ -39,7 +39,6 @@ namespace Sample
 #endif
                 // Use WCF defaults for ChannelBinding & TokenImpersonationLevel
                 negoStream.AuthenticateAsClient(cred, null, target, protectionLevel, MockImpersonation.Identification);
-                MockLogging.PrintInfo(null, "____Connected to " + negoStream.RemoteIdentity.Name);
                 var sendBuf = Encoding.UTF8.GetBytes("Hello " + (isNtlm ? "NTLMv2" : "SPNEGO") + "\n");
                 negoStream.Write(sendBuf, 0, sendBuf.Length);
                 MockLogging.PrintInfo(null, "Waiting for data from server....");
@@ -61,7 +60,6 @@ namespace Sample
                 // Use WCF defaults for ExtendedProtectionPolic & TokenImpersonationLevel
                 negoStream.AuthenticateAsServer(cred, null, impersonation: MockImpersonation.Identification);
 #endif
-                MockLogging.PrintInfo(null, "____Connected to " + negoStream.RemoteIdentity.Name);
                 MockLogging.PrintInfo(null, "Waiting for data from client....");
                 var recvBuf = new byte[1000];
                 var ret = negoStream.Read(recvBuf, 0, recvBuf.Length);

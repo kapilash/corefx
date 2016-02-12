@@ -16,7 +16,6 @@ namespace System.Net
         internal const string NTLM = "NTLM";
         internal const string Kerberos = "Kerberos";
         internal const string Negotiate = "Negotiate";
-        internal string AuthenticationPackage;
         internal NegotiationInfoClass(SafeHandle safeHandle, int negotiationState)
         {
         }
@@ -30,7 +29,6 @@ namespace MockNegotiateStream
     using System.Net.Security;
 
     using OM_uint32 = System.UInt32;
-    using GssFlags = Interop.libgssapi.GssFlags;
     using NtlmFlags = Interop.NetSecurityNative.NtlmFlags;
 
     internal class MockCredential
@@ -80,19 +78,6 @@ namespace MockNegotiateStream
         private MockGenericIdentity _identity;
         private bool _isEncrypted;
 
-        internal MockGenericIdentity RemoteIdentity
-        {
-            get
-            {
-                if (_identity == null)
-                {
-                    SecurityStatusPal errorCode;
-                    var name = (string) NegotiateStreamPal.QueryContextAttributes((SafeDeleteGssContext)_context, 0x01, out errorCode);
-                    _identity = new MockGenericIdentity(name);
-                }
-                return _identity;
-            }
-        }
 
         internal MockNegotiateStream(Stream innerStream)
         {
@@ -133,22 +118,6 @@ namespace MockNegotiateStream
 
         internal void AuthenticateAsServer(MockCredential cred, object extendedProtectionPolicy=null, MockProtection protection=MockProtection.EncryptAndSign, MockImpersonation impersonation=MockImpersonation.Identification)
         {
-            _isSecure = (protection != MockProtection.None);
-            _isEncrypted = (protection == MockProtection.EncryptAndSign);
-            SafeHandle inCred;
-            NegotiateStreamPal.AcquireCredentialsHandle(string.Empty, true, string.Empty, string.Empty, string.Empty, out inCred);
-            byte[] inBuf = null;
-            while(true)
-            {
-                inBuf = _framer.ReadMessage();
-                SecurityBuffer inputBuffer = new SecurityBuffer(inBuf, SecurityBufferType.Token);
-                SecurityBuffer outputBuffer = new SecurityBuffer(0, SecurityBufferType.Token);
-                uint outFlags=0;
-                var inFlags = GetFlags(false, protection, impersonation);
-                var done = NegotiateStreamPal.AcceptSecurityContext(inCred, ref _context, inputBuffer, inFlags, 0, outputBuffer, ref outFlags);
-                _framer.WriteMessage(outputBuffer.token);
-                if (done==SecurityStatusPal.OK) break;
-            }
         }
 
         internal int Read(byte[] buffer, int offset, int count)
@@ -179,15 +148,7 @@ namespace MockNegotiateStream
 #region private
         private OM_uint32 GetFlags(bool isServer, MockProtection protection, MockImpersonation impersonation)
         {
-            GssFlags inFlags=0;
-            if (protection == MockProtection.EncryptAndSign) inFlags = GssFlags.GSS_C_CONF_FLAG;
-            else if (protection == MockProtection.Sign) inFlags = GssFlags.GSS_C_REPLAY_FLAG | GssFlags.GSS_C_SEQUENCE_FLAG;
-            if (!isServer)
-            {
-                if (protection != MockProtection.None) inFlags |= GssFlags.GSS_C_MUTUAL_FLAG;
-                if (impersonation == MockImpersonation.Identification) inFlags |= GssFlags.GSS_C_IDENTIFY_FLAG;
-            }
-            return (OM_uint32)inFlags;
+            return (OM_uint32)0;
         }
 
         private uint GetNtlmFlags(bool isServer, MockProtection protection, MockImpersonation impersonation)
