@@ -20,6 +20,18 @@ namespace System.Net.Security.Tests
         private const string Krb5ConfigFile = "/etc/krb5.conf";
         private const string KDestroyCmd = "kdestroy";
 
+        public KDCSetup()
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.UseShellExecute = true;
+            startInfo.FileName = "./setup-kdc.sh";
+            Process kdcSetup = new Process();
+            kdcSetup.StartInfo = startInfo;
+            kdcSetup.Start();
+            kdcSetup.WaitForExit();
+            Assert.Equal(0, kdcSetup.ExitCode);
+        }
+
         // checks for avilability of Kerberos related infrastructure
         // on the host. Returns true available, false otherwise
         public static bool CheckAndInitializeKerberos()
@@ -39,13 +51,15 @@ namespace System.Net.Security.Tests
         }
     }
 
-    public class KerberosTest : IDisposable
+    public class KerberosTest : IDisposable, IClassFixture<KDCSetup>
     {
         private readonly byte[] _sampleMsg = Encoding.UTF8.GetBytes("Sample Test Message");
         private readonly bool _isKrbAvailable; // tests are no-op if kerberos is not available on the host machine
+        private readonly KDCSetup _fixture;
 
-        public KerberosTest()
+        public KerberosTest(KDCSetup fixture)
         {
+            _fixture = fixture;
             _isKrbAvailable = KDCSetup.CheckAndInitializeKerberos();
         }
 
