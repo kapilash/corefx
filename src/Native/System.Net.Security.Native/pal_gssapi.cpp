@@ -189,6 +189,36 @@ extern "C" uint32_t NetSecurityNative_InitSecContext(uint32_t* minorStatus,
     return NetSecurityNative_HandleError(majorStatus, &gssBuffer, outBuffer);
 }
 
+extern "C" uint32_t NetSecurityNative_AcceptSecContext(uint32_t* minorStatus,
+                                                     GssCtxId** contextHandle,
+                                                     uint8_t* inputBytes,
+                                                     uint32_t inputLength,
+                                                     struct PAL_GssBuffer* outBuffer)
+{
+    assert(minorStatus != nullptr);
+    assert(contextHandle != nullptr);
+    assert(outBuffer != nullptr);
+    assert(inputBytes  != nullptr || inputLength == 0);
+
+
+    GssBuffer inputToken {.length = UnsignedCast(inputLength), .value = inputBytes};
+    GssBuffer gssBuffer { .length = 0, .value = nullptr };
+
+    uint32_t majorStatus = gss_accept_sec_context(minorStatus,
+                                                contextHandle,
+                                                GSS_C_NO_CREDENTIAL,
+                                                &inputToken,
+                                                GSS_C_NO_CHANNEL_BINDINGS,
+                                                nullptr,
+                                                nullptr,
+                                                &gssBuffer,
+                                                0,
+                                                nullptr,
+                                                nullptr);
+
+    return NetSecurityNative_HandleError(majorStatus, &gssBuffer, outBuffer);
+}
+
 extern "C" uint32_t NetSecurityNative_ReleaseCred(uint32_t* minorStatus, GssCredId** credHandle)
 {
     assert(minorStatus != nullptr);

@@ -104,6 +104,16 @@ extern "C" uint32_t NetSecurityNative_InitSecContext(uint32_t* minorStatus,
                                                      uint32_t* retFlags);
 
 /*
+Shims the gss_accept_sec_context method
+*/
+extern "C" uint32_t NetSecurityNative_AcceptSecContext(uint32_t* minorStatus,
+                                                     GssCtxId** contextHandle,
+                                                     uint8_t* inputBytes,
+                                                     uint32_t inputLength,
+                                                     struct PAL_GssBuffer* outBuffer);
+
+/*
+
 Shims the gss_delete_sec_context method.
 */
 extern "C" uint32_t NetSecurityNative_DeleteSecContext(uint32_t* minorStatus, GssCtxId** contextHandle);
