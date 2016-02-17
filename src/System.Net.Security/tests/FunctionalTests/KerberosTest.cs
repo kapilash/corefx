@@ -25,11 +25,11 @@ namespace System.Net.Security.Tests
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.UseShellExecute = true;
             startInfo.FileName = "./setup-kdc.sh";
-            Process kdcSetup = new Process();
-            kdcSetup.StartInfo = startInfo;
-            kdcSetup.Start();
-            kdcSetup.WaitForExit();
-            Assert.Equal(0, kdcSetup.ExitCode);
+            using (Process kdcSetup = Process.Start(startInfo))
+            {
+                kdcSetup.WaitForExit();
+                Assert.Equal(0, kdcSetup.ExitCode);
+            }
         }
 
         // checks for avilability of Kerberos related infrastructure
@@ -43,9 +43,11 @@ namespace System.Net.Security.Tests
                 startInfo.UseShellExecute = false;
                 startInfo.CreateNoWindow = true;
                 startInfo.Arguments = "-A";
-                Process clearCreds = Process.Start(startInfo);
-                clearCreds.WaitForExit();
-                return (clearCreds.ExitCode == 0);
+                using (Process clearCreds = Process.Start(startInfo))
+                {
+                    clearCreds.WaitForExit();
+                    return (clearCreds.ExitCode == 0);
+                }
             }
             return false;
         }
@@ -64,7 +66,7 @@ namespace System.Net.Security.Tests
         }
 
         [Fact, OuterLoop]
-        [PlatformSpecific(PlatformID.Linux | PlatformID.OSX)]
+        [PlatformSpecific(PlatformID.Linux)]
         public void NegotiateStream_StreamToStream_KerberosAuthentication_Success()
         {
             if (!_isKrbAvailable)
@@ -79,7 +81,7 @@ namespace System.Net.Security.Tests
             using (var client = new UnixGssFakeNegotiateStream(clientStream))
             using (var server = new UnixGssFakeNegotiateStream(serverStream))
             {
-                Assert.False(client.IsAuthenticated);
+                Assert.False(client.IsAuthenticated, "client is not authenticated");
 
                 Task[] auth = new Task[2];
                 string user = string.Format("{0}@{1}", TestConfiguration.KerberosUser, TestConfiguration.Realm);
@@ -92,23 +94,23 @@ namespace System.Net.Security.Tests
                 Assert.True(finished, "Handshake completed in the allotted time");
 
                 // Expected Client property values:
-                Assert.True(client.IsAuthenticated);
+                Assert.True(client.IsAuthenticated, "client is now authenticated");
                 Assert.Equal(TokenImpersonationLevel.Identification, client.ImpersonationLevel);
-                Assert.True(client.IsEncrypted);
-                Assert.True(client.IsMutuallyAuthenticated);
-                Assert.False(client.IsServer);
-                Assert.True(client.IsSigned);
-                Assert.False(client.LeaveInnerStreamOpen);
+                Assert.True(client.IsEncrypted, "client is encrypted");
+                Assert.True(client.IsMutuallyAuthenticated, "client is mutually authenticated");
+                Assert.False(client.IsServer, "client is not server");
+                Assert.True(client.IsSigned, "client is signed");
+                Assert.False(client.LeaveInnerStreamOpen, "inner stream remains open");
 
                 IIdentity serverIdentity = client.RemoteIdentity;
                 Assert.Equal("Kerberos", serverIdentity.AuthenticationType);
-                Assert.True(serverIdentity.IsAuthenticated);
+                Assert.True(serverIdentity.IsAuthenticated, "server identity is authenticated");
                 IdentityValidator.AssertHasName(serverIdentity, target);
             }
         }
 
         [Fact, OuterLoop]
-        [PlatformSpecific(PlatformID.Linux | PlatformID.OSX)]
+        [PlatformSpecific(PlatformID.Linux)]
         public void NegotiateStream_StreamToStream_AuthToHttpTarget_Success()
         {
             if (!_isKrbAvailable)
@@ -136,23 +138,23 @@ namespace System.Net.Security.Tests
                 Assert.True(finished, "Handshake completed in the allotted time");
 
                 // Expected Client property values:
-                Assert.True(client.IsAuthenticated);
+                Assert.True(client.IsAuthenticated, "client is authenticated");
                 Assert.Equal(TokenImpersonationLevel.Identification, client.ImpersonationLevel);
-                Assert.True(client.IsEncrypted);
-                Assert.True(client.IsMutuallyAuthenticated);
-                Assert.False(client.IsServer);
-                Assert.True(client.IsSigned);
-                Assert.False(client.LeaveInnerStreamOpen);
+                Assert.True(client.IsEncrypted, "client is encrypted");
+                Assert.True(client.IsMutuallyAuthenticated, "mutually authentication is true");
+                Assert.False(client.IsServer, "client is not a server");
+                Assert.True(client.IsSigned, "clientStream is signed");
+                Assert.False(client.LeaveInnerStreamOpen, "Inner stream is open");
 
                 IIdentity serverIdentity = client.RemoteIdentity;
                 Assert.Equal("Kerberos", serverIdentity.AuthenticationType);
-                Assert.True(serverIdentity.IsAuthenticated);
+                Assert.True(serverIdentity.IsAuthenticated, "remote identity of client is authenticated");
                 IdentityValidator.AssertHasName(serverIdentity, target);
             }
         }
 
         [Fact, OuterLoop]
-        [PlatformSpecific(PlatformID.Linux | PlatformID.OSX)]
+        [PlatformSpecific(PlatformID.Linux)]
         public void NegotiateStream_StreamToStream_KerberosAuthWithoutRealm_Success()
         {
             if (!_isKrbAvailable)
@@ -178,23 +180,23 @@ namespace System.Net.Security.Tests
                 Assert.True(finished, "Handshake completed in the allotted time");
 
                 // Expected Client property values:
-                Assert.True(client.IsAuthenticated);
+                Assert.True(client.IsAuthenticated, "client is authenticated");
                 Assert.Equal(TokenImpersonationLevel.Identification, client.ImpersonationLevel);
-                Assert.True(client.IsEncrypted);
-                Assert.True(client.IsMutuallyAuthenticated);
-                Assert.False(client.IsServer);
-                Assert.True(client.IsSigned);
-                Assert.False(client.LeaveInnerStreamOpen);
+                Assert.True(client.IsEncrypted, "client stream is encrypted");
+                Assert.True(client.IsMutuallyAuthenticated, "mutual authentication is true");
+                Assert.False(client.IsServer, "client is not server");
+                Assert.True(client.IsSigned, "client stream is signed");
+                Assert.False(client.LeaveInnerStreamOpen, "inner stream is open");
 
                 IIdentity serverIdentity = client.RemoteIdentity;
                 Assert.Equal("Kerberos", serverIdentity.AuthenticationType);
-                Assert.True(serverIdentity.IsAuthenticated);
+                Assert.True(serverIdentity.IsAuthenticated, "remote identity is authenticated");
                 IdentityValidator.AssertHasName(serverIdentity, TestConfiguration.HostTarget);
             }
         }
 
         [Fact, OuterLoop]
-        [PlatformSpecific(PlatformID.Linux | PlatformID.OSX)]
+        [PlatformSpecific(PlatformID.Linux)]
         public void NegotiateStream_StreamToStream_KerberosAuthDefaultCredentials_Success()
         {
             if (!_isKrbAvailable)
@@ -209,7 +211,7 @@ namespace System.Net.Security.Tests
             using (var client = new UnixGssFakeNegotiateStream(clientStream))
             using (var server = new UnixGssFakeNegotiateStream(serverStream))
             {
-                Assert.False(client.IsAuthenticated);
+                Assert.False(client.IsAuthenticated, "client is not authenticated before AuthenticateAsClient call");
 
                 Task[] auth = new Task[2];
                 string user = string.Format("{0}@{1}", TestConfiguration.KerberosUser, TestConfiguration.Realm);
@@ -223,23 +225,23 @@ namespace System.Net.Security.Tests
                 Assert.True(finished, "Handshake completed in the allotted time");
 
                 // Expected Client property values:
-                Assert.True(client.IsAuthenticated);
+                Assert.True(client.IsAuthenticated, "client is now authenticated");
                 Assert.Equal(TokenImpersonationLevel.Identification, client.ImpersonationLevel);
-                Assert.True(client.IsEncrypted);
-                Assert.True(client.IsMutuallyAuthenticated);
-                Assert.False(client.IsServer);
-                Assert.True(client.IsSigned);
-                Assert.False(client.LeaveInnerStreamOpen);
+                Assert.True(client.IsEncrypted, "client stream is encrypted");
+                Assert.True(client.IsMutuallyAuthenticated, "mutual authentication is true");
+                Assert.False(client.IsServer, "client is not server");
+                Assert.True(client.IsSigned, "client stream is signed");
+                Assert.False(client.LeaveInnerStreamOpen, "inner stream is open");
 
                 IIdentity serverIdentity = client.RemoteIdentity;
                 Assert.Equal("Kerberos", serverIdentity.AuthenticationType);
-                Assert.True(serverIdentity.IsAuthenticated);
+                Assert.True(serverIdentity.IsAuthenticated,"server identity is authenticated");
                 IdentityValidator.AssertHasName(serverIdentity, target);
             }
         }
 
         [Fact, OuterLoop]
-        [PlatformSpecific(PlatformID.Linux | PlatformID.OSX)]
+        [PlatformSpecific(PlatformID.Linux)]
         public void NegotiateStream_StreamToStream_KerberosAuthInvalidUser_Failure()
         {
             if (!_isKrbAvailable)
@@ -252,7 +254,7 @@ namespace System.Net.Security.Tests
             using (var clientStream = new VirtualNetworkStream(network, isServer: false))
             using (var client = new UnixGssFakeNegotiateStream(clientStream))
             {
-                Assert.False(client.IsAuthenticated);
+                Assert.False(client.IsAuthenticated, "client is not authenticated by default");
 
                 string user = string.Format("{0}@{1}", TestConfiguration.KerberosUser, TestConfiguration.Realm);
                 string target = string.Format("{0}@{1}", TestConfiguration.HostTarget, TestConfiguration.Realm);
@@ -265,7 +267,7 @@ namespace System.Net.Security.Tests
         }
 
         [Fact, OuterLoop]
-        [PlatformSpecific(PlatformID.Linux | PlatformID.OSX)]
+        [PlatformSpecific(PlatformID.Linux)]
         public void NegotiateStream_StreamToStream_KerberosAuthInvalidPassword_Failure()
         {
             if (!_isKrbAvailable)
@@ -278,7 +280,7 @@ namespace System.Net.Security.Tests
             using (var clientStream = new VirtualNetworkStream(network, isServer: false))
             using (var client = new UnixGssFakeNegotiateStream(clientStream))
             {
-                Assert.False(client.IsAuthenticated);
+                Assert.False(client.IsAuthenticated, "client stream is not authenticated by default");
 
                 string user = string.Format("{0}@{1}", TestConfiguration.KerberosUser, TestConfiguration.Realm);
                 string target = string.Format("{0}@{1}", TestConfiguration.HostTarget, TestConfiguration.Realm);
@@ -291,8 +293,8 @@ namespace System.Net.Security.Tests
         }
 
         [Fact, OuterLoop]
-        [PlatformSpecific(PlatformID.Linux | PlatformID.OSX)]
-        [ActiveIssue(6114, PlatformID.Linux | PlatformID.OSX)]
+        [PlatformSpecific(PlatformID.Linux)]
+        [ActiveIssue(6114, PlatformID.Linux)]
         public void NegotiateStream_StreamToStream_KerberosAuthInvalidTarget_Failure()
         {
             if (!_isKrbAvailable)
@@ -305,7 +307,7 @@ namespace System.Net.Security.Tests
             using (var clientStream = new VirtualNetworkStream(network, isServer: false))
             using (var client = new UnixGssFakeNegotiateStream(clientStream))
             {
-                Assert.False(client.IsAuthenticated);
+                Assert.False(client.IsAuthenticated, "client stream is not authenticated by default");
 
                 string user = string.Format("{0}@{1}", TestConfiguration.KerberosUser, TestConfiguration.Realm);
                 string target = string.Format("{0}@{1}", TestConfiguration.HostTarget, TestConfiguration.Realm);
