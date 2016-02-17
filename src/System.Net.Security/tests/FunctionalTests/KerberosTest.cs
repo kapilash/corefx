@@ -242,6 +242,29 @@ namespace System.Net.Security.Tests
 
         [Fact, OuterLoop]
         [PlatformSpecific(PlatformID.Linux)]
+        public void NegotiateStream_StreamToStream_KerberosAuthDefaultCredentialsNoSeed_Failure()
+        {
+            if (!_isKrbAvailable)
+            {
+                return;
+            }
+
+            VirtualNetwork network = new VirtualNetwork();
+
+            using (var clientStream = new VirtualNetworkStream(network, isServer: false))
+            using (var client = new UnixGssFakeNegotiateStream(clientStream))
+            {
+                Assert.False(client.IsAuthenticated, "client is not authenticated before AuthenticateAsClient call");
+
+                Task[] auth = new Task[2];
+                string user = string.Format("{0}@{1}", TestConfiguration.KerberosUser, TestConfiguration.Realm);
+                string target = string.Format("{0}@{1}", TestConfiguration.HostTarget, TestConfiguration.Realm);
+                Assert.ThrowsAsync<AuthenticationException>(() => client.AuthenticateAsClientAsync(CredentialCache.DefaultNetworkCredentials, target));
+            }
+        }
+
+        [Fact, OuterLoop]
+        [PlatformSpecific(PlatformID.Linux)]
         public void NegotiateStream_StreamToStream_KerberosAuthInvalidUser_Failure()
         {
             if (!_isKrbAvailable)
@@ -294,7 +317,6 @@ namespace System.Net.Security.Tests
 
         [Fact, OuterLoop]
         [PlatformSpecific(PlatformID.Linux)]
-        [ActiveIssue(6114, PlatformID.Linux)]
         public void NegotiateStream_StreamToStream_KerberosAuthInvalidTarget_Failure()
         {
             if (!_isKrbAvailable)
@@ -312,10 +334,7 @@ namespace System.Net.Security.Tests
                 string user = string.Format("{0}@{1}", TestConfiguration.KerberosUser, TestConfiguration.Realm);
                 string target = string.Format("{0}@{1}", TestConfiguration.HostTarget, TestConfiguration.Realm);
                 NetworkCredential credential = new NetworkCredential(user, TestConfiguration.Password);
-                Assert.Throws<AuthenticationException>(() =>
-                {
-                    client.AuthenticateAsClientAsync(credential, target.Substring(1));
-                });
+                Assert.ThrowsAsync<AuthenticationException>(() => client.AuthenticateAsClientAsync(credential, target.Substring(1)));
             }
         }
 
