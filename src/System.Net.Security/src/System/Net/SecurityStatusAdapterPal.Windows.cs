@@ -85,12 +85,6 @@ namespace System.Net
 
         internal static Interop.SecurityStatus GetInteropFromSecurityStatusPal(SecurityStatusPal status)
         {
-            if (status == SecurityStatusPal.NotSet)
-            {
-                Debug.Fail("SecurityStatus NotSet");
-                throw new InternalException();
-            }
-
             foreach (SecurityStatusMapping mapping in s_securityStatusMapping)
             {
                 if (status == mapping.SecurityStatus)
