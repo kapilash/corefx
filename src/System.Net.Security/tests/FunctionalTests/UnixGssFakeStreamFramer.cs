@@ -21,7 +21,23 @@ namespace System.Net.Security.Tests
             _innerStream = innerStream;
         }
 
-        public void WriteFrame(byte[] buffer, int offset, int count)
+        public void WriteDataFrame(byte[] buffer, int offset, int count)
+        {
+            // data messages have the format of |pay-load-size|pay-load...|
+            // where, pay-load-size = size of the payload as unsigned-int in little endian format
+            // reference: https://msdn.microsoft.com/en-us/library/cc236740.aspx
+
+            byte[] prefix = BitConverter.GetBytes(Convert.ToUInt32(count));
+            if (!BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(prefix);
+            }
+
+            _innerStream.Write(prefix, 0, prefix.Length);
+            _innerStream.Write(buffer, offset, count);
+        }
+
+        public void WriteHandshakeFrame(byte[] buffer, int offset, int count)
         {
             WriteFrameHeader(count, isError:false);
             if (count > 0)
@@ -30,22 +46,57 @@ namespace System.Net.Security.Tests
             }
         }
 
-        public void WriteFrame(Interop.NetSecurityNative.GssApiException e)
+        public void WriteHandshakeFrame(Interop.NetSecurityNative.GssApiException e)
         {
             WriteFrameHeader(ErrorBuffer.Length, isError:true);
             _innerStream.Write(ErrorBuffer, 0, ErrorBuffer.Length);
         }
 
-        public byte[] ReadFrame()
+        public byte[] ReadHandshakeFrame()
         {
+            // A handshake header described at https://msdn.microsoft.com/en-us/library/cc236739.aspx
+            // consists of 5 bytes:
+            //   first byte is a message id (one of [HandshakeDoneId, HandshakeErrId, HandshakeInProgress])
+            //   second byte is Major version of protocol (0x01)
+            //   third byte is Minor version of protocol (0)
+            //   fourth byte is the high order byte of the payload size (expressed as unsigned int)
+            //   fifth byte is the low order byte of the payload size (expressed as unsigned int)
+
             _innerStream.Read(_header, 0, _header.Length);
             byte[] inBuf = new byte[(_header[3] << 8) + _header[4]];
             _innerStream.Read(inBuf, 0, inBuf.Length);
             return inBuf;
         }
 
+        public byte[] ReadDataFrame()
+        {
+            // data messages have the format of |pay-load-size|pay-load...|
+            // where, pay-load-size = size of the payload as unsigned-int in little endian format
+            // reference: https://msdn.microsoft.com/en-us/library/cc236740.aspx
+
+            byte[] lenBytes = new byte[4];
+            _innerStream.Read(lenBytes, 0, lenBytes.Length);
+            if (!BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(lenBytes);
+            }
+
+            int length = Convert.ToInt32(BitConverter.ToUInt32(lenBytes, startIndex: 0));
+            byte[] data = new byte[length];
+            _innerStream.Read(data, 0, length);
+            return data;
+        }
+
         private void WriteFrameHeader(int count, bool isError)
         {
+            // A handshake header described at https://msdn.microsoft.com/en-us/library/cc236739.aspx
+            // consists of 5 bytes:
+            //   first byte is a message id (one of [HandshakeDoneId, HandshakeErrId, HandshakeInProgress])
+            //   second byte is Major version of protocol (0x01)
+            //   third byte is Minor version of protocol (0)
+            //   fourth byte is the high order byte of the payload size (expressed as unsigned int)
+            //   fifth byte is the low order byte of the payload size (expressed as unsigned int)
+
             _header[0] = isError ? HandshakeErrId : HandshakeDoneId;
             _header[1] = DefaultMajorV;
             _header[2] = DefaultMinorV;

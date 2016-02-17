@@ -242,6 +242,78 @@ namespace System.Net.Security.Tests
 
         [Fact, OuterLoop]
         [PlatformSpecific(PlatformID.Linux)]
+        public void NegotiateStream_StreamToStream_EchoServer_ClientWriteRead_Sync_Success()
+        {
+            if (!_isKrbAvailable)
+            {
+                return;
+            }
+
+            VirtualNetwork network = new VirtualNetwork();
+            byte[] recvBuf = new byte[_sampleMsg.Length];
+
+            using (var clientStream = new VirtualNetworkStream(network, isServer: false))
+            using (var serverStream = new VirtualNetworkStream(network, isServer: true))
+            using (var client = new UnixGssFakeNegotiateStream(clientStream))
+            using (var server = new UnixGssFakeNegotiateStream(serverStream, 1))
+            {
+                Assert.False(client.IsAuthenticated, "client is not authenticated before AuthenticateAsClient call");
+
+                string user = string.Format("{0}@{1}", TestConfiguration.KerberosUser, TestConfiguration.Realm);
+                string target = string.Format("{0}@{1}", TestConfiguration.HostTarget, TestConfiguration.Realm);
+                // Seed the default Kerberos cache with the TGT
+                UnixGssFakeNegotiateStream.GetDefaultKerberosCredentials(user, TestConfiguration.Password);
+                Task serverTask = server.AuthenticateAsServerAsync();
+                bool finished = client.AuthenticateAsClientAsync(CredentialCache.DefaultNetworkCredentials, target).Wait(TestConfiguration.PassingTestTimeoutMilliseconds);
+
+                Assert.True(finished, "Handshake completed in the allotted time");
+                client.Write(_sampleMsg, 0, _sampleMsg.Length);
+                client.Read(recvBuf, 0, recvBuf.Length);
+                Assert.True(_sampleMsg.SequenceEqual(recvBuf));
+                finished = serverTask.Wait(TestConfiguration.PassingTestTimeoutMilliseconds);
+                Assert.True(finished, "Message roundtrip completed in the allotted time");
+            }
+        }
+
+        [Fact, OuterLoop]
+        [PlatformSpecific(PlatformID.Linux)]
+        public void NegotiateStream_StreamToStream_EchoServer_ClientWriteRead_ASync_Success()
+        {
+            if (!_isKrbAvailable)
+            {
+                return;
+            }
+
+            VirtualNetwork network = new VirtualNetwork();
+            byte[] recvBuf = new byte[_sampleMsg.Length];
+
+            using (var clientStream = new VirtualNetworkStream(network, isServer: false))
+            using (var serverStream = new VirtualNetworkStream(network, isServer: true))
+            using (var client = new UnixGssFakeNegotiateStream(clientStream))
+            using (var server = new UnixGssFakeNegotiateStream(serverStream, 1))
+            {
+                Assert.False(client.IsAuthenticated, "client is not authenticated before AuthenticateAsClient call");
+
+                string user = string.Format("{0}@{1}", TestConfiguration.KerberosUser, TestConfiguration.Realm);
+                string target = string.Format("{0}@{1}", TestConfiguration.HostTarget, TestConfiguration.Realm);
+                // Seed the default Kerberos cache with the TGT
+                UnixGssFakeNegotiateStream.GetDefaultKerberosCredentials(user, TestConfiguration.Password);
+                Task serverTask = server.AuthenticateAsServerAsync();
+                bool finished = client.AuthenticateAsClientAsync(CredentialCache.DefaultNetworkCredentials, target).Wait(TestConfiguration.PassingTestTimeoutMilliseconds);
+
+                Assert.True(finished, "Handshake completed in the allotted time");
+                Task[] msgTasks = new Task[3];
+                msgTasks[0] = client.WriteAsync(_sampleMsg, 0, _sampleMsg.Length);
+                msgTasks[1] = client.ReadAsync(recvBuf, 0, recvBuf.Length);
+                msgTasks[2] = serverTask;
+                finished = Task.WaitAll(msgTasks, TestConfiguration.PassingTestTimeoutMilliseconds);
+                Assert.True(finished, "Messages sent and received in the allotted time");
+                Assert.True(_sampleMsg.SequenceEqual(recvBuf));
+            }
+        }
+
+        [Fact, OuterLoop]
+        [PlatformSpecific(PlatformID.Linux)]
         public void NegotiateStream_StreamToStream_KerberosAuthDefaultCredentialsNoSeed_Failure()
         {
             if (!_isKrbAvailable)
