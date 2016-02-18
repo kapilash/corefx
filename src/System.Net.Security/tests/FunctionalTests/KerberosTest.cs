@@ -55,7 +55,8 @@ namespace System.Net.Security.Tests
 
     public class KerberosTest : IDisposable, IClassFixture<KDCSetup>
     {
-        private readonly byte[] _sampleMsg = Encoding.UTF8.GetBytes("Sample Test Message");
+        private readonly byte[] _firstMessage = Encoding.UTF8.GetBytes("Sample First Message");
+        private readonly byte[] _secondMessage = Encoding.UTF8.GetBytes("Sample Second Message");
         private readonly bool _isKrbAvailable; // tests are no-op if kerberos is not available on the host machine
         private readonly KDCSetup _fixture;
 
@@ -78,7 +79,7 @@ namespace System.Net.Security.Tests
 
             using (var clientStream = new VirtualNetworkStream(network, isServer: false))
             using (var serverStream = new VirtualNetworkStream(network, isServer: true))
-            using (var client = new UnixGssFakeNegotiateStream(clientStream))
+            using (var client = new NegotiateStream(clientStream))
             using (var server = new UnixGssFakeNegotiateStream(serverStream))
             {
                 Assert.False(client.IsAuthenticated, "client is not authenticated");
@@ -122,7 +123,7 @@ namespace System.Net.Security.Tests
 
             using (var clientStream = new VirtualNetworkStream(network, isServer: false))
             using (var serverStream = new VirtualNetworkStream(network, isServer: true))
-            using (var client = new UnixGssFakeNegotiateStream(clientStream))
+            using (var client = new NegotiateStream(clientStream))
             using (var server = new UnixGssFakeNegotiateStream(serverStream))
             {
                 Assert.False(client.IsAuthenticated);
@@ -166,7 +167,7 @@ namespace System.Net.Security.Tests
 
             using (var clientStream = new VirtualNetworkStream(network, isServer: false))
             using (var serverStream = new VirtualNetworkStream(network, isServer: true))
-            using (var client = new UnixGssFakeNegotiateStream(clientStream))
+            using (var client = new NegotiateStream(clientStream))
             using (var server = new UnixGssFakeNegotiateStream(serverStream))
             {
                 Assert.False(client.IsAuthenticated);
@@ -208,7 +209,7 @@ namespace System.Net.Security.Tests
 
             using (var clientStream = new VirtualNetworkStream(network, isServer: false))
             using (var serverStream = new VirtualNetworkStream(network, isServer: true))
-            using (var client = new UnixGssFakeNegotiateStream(clientStream))
+            using (var client = new NegotiateStream(clientStream))
             using (var server = new UnixGssFakeNegotiateStream(serverStream))
             {
                 Assert.False(client.IsAuthenticated, "client is not authenticated before AuthenticateAsClient call");
@@ -242,7 +243,7 @@ namespace System.Net.Security.Tests
 
         [Fact, OuterLoop]
         [PlatformSpecific(PlatformID.Linux)]
-        public void NegotiateStream_StreamToStream_EchoServer_ClientWriteRead_Sync_Success()
+        public void NegotiateStream_EchoServer_ClientWriteRead_Successive_Sync_Success()
         {
             if (!_isKrbAvailable)
             {
@@ -250,34 +251,41 @@ namespace System.Net.Security.Tests
             }
 
             VirtualNetwork network = new VirtualNetwork();
-            byte[] recvBuf = new byte[_sampleMsg.Length];
+            byte[] firstRecvBuffer = new byte[_firstMessage.Length];
+            byte[] secondRecvBuffer = new byte[_secondMessage.Length];
 
             using (var clientStream = new VirtualNetworkStream(network, isServer: false))
             using (var serverStream = new VirtualNetworkStream(network, isServer: true))
-            using (var client = new UnixGssFakeNegotiateStream(clientStream))
-            using (var server = new UnixGssFakeNegotiateStream(serverStream, 1))
+            using (var client = new NegotiateStream(clientStream))
+            using (var server = new UnixGssFakeNegotiateStream(serverStream))
             {
                 Assert.False(client.IsAuthenticated, "client is not authenticated before AuthenticateAsClient call");
 
+                Task[] auth = new Task[2];
                 string user = string.Format("{0}@{1}", TestConfiguration.KerberosUser, TestConfiguration.Realm);
                 string target = string.Format("{0}@{1}", TestConfiguration.HostTarget, TestConfiguration.Realm);
-                // Seed the default Kerberos cache with the TGT
-                UnixGssFakeNegotiateStream.GetDefaultKerberosCredentials(user, TestConfiguration.Password);
-                Task serverTask = server.AuthenticateAsServerAsync();
-                bool finished = client.AuthenticateAsClientAsync(CredentialCache.DefaultNetworkCredentials, target).Wait(TestConfiguration.PassingTestTimeoutMilliseconds);
-
+                NetworkCredential credential = new NetworkCredential(user, TestConfiguration.Password);
+                auth[0] = client.AuthenticateAsClientAsync(credential, target);
+                auth[1] = server.AuthenticateAsServerAsync();
+                bool finished = Task.WaitAll(auth, TestConfiguration.PassingTestTimeoutMilliseconds);
                 Assert.True(finished, "Handshake completed in the allotted time");
-                client.Write(_sampleMsg, 0, _sampleMsg.Length);
-                client.Read(recvBuf, 0, recvBuf.Length);
-                Assert.True(_sampleMsg.SequenceEqual(recvBuf));
-                finished = serverTask.Wait(TestConfiguration.PassingTestTimeoutMilliseconds);
+
+                var svrMsgTask = server.PollMessageAsync(2);
+
+                client.Write(_firstMessage, 0, _firstMessage.Length);
+                client.Write(_secondMessage, 0, _secondMessage.Length);
+                client.Read(firstRecvBuffer, 0, firstRecvBuffer.Length);
+                client.Read(secondRecvBuffer, 0, secondRecvBuffer.Length);
+                Assert.True(_firstMessage.SequenceEqual(firstRecvBuffer), "first message received is as expected");
+                Assert.True(_secondMessage.SequenceEqual(secondRecvBuffer), "second message received is as expected");
+                finished = svrMsgTask.Wait(TestConfiguration.PassingTestTimeoutMilliseconds);
                 Assert.True(finished, "Message roundtrip completed in the allotted time");
             }
         }
 
         [Fact, OuterLoop]
         [PlatformSpecific(PlatformID.Linux)]
-        public void NegotiateStream_StreamToStream_EchoServer_ClientWriteRead_ASync_Success()
+        public void NegotiateStream_EchoServer_ClientWriteRead_Successive_Async_Success()
         {
             if (!_isKrbAvailable)
             {
@@ -285,30 +293,36 @@ namespace System.Net.Security.Tests
             }
 
             VirtualNetwork network = new VirtualNetwork();
-            byte[] recvBuf = new byte[_sampleMsg.Length];
+            byte[] firstRecvBuffer = new byte[_firstMessage.Length];
+            byte[] secondRecvBuffer = new byte[_secondMessage.Length];
 
             using (var clientStream = new VirtualNetworkStream(network, isServer: false))
             using (var serverStream = new VirtualNetworkStream(network, isServer: true))
-            using (var client = new UnixGssFakeNegotiateStream(clientStream))
-            using (var server = new UnixGssFakeNegotiateStream(serverStream, 1))
+            using (var client = new NegotiateStream(clientStream))
+            using (var server = new UnixGssFakeNegotiateStream(serverStream))
             {
                 Assert.False(client.IsAuthenticated, "client is not authenticated before AuthenticateAsClient call");
 
+                Task[] auth = new Task[2];
                 string user = string.Format("{0}@{1}", TestConfiguration.KerberosUser, TestConfiguration.Realm);
                 string target = string.Format("{0}@{1}", TestConfiguration.HostTarget, TestConfiguration.Realm);
-                // Seed the default Kerberos cache with the TGT
-                UnixGssFakeNegotiateStream.GetDefaultKerberosCredentials(user, TestConfiguration.Password);
-                Task serverTask = server.AuthenticateAsServerAsync();
-                bool finished = client.AuthenticateAsClientAsync(CredentialCache.DefaultNetworkCredentials, target).Wait(TestConfiguration.PassingTestTimeoutMilliseconds);
-
+                NetworkCredential credential = new NetworkCredential(user, TestConfiguration.Password);
+                auth[0] = client.AuthenticateAsClientAsync(credential, target);
+                auth[1] = server.AuthenticateAsServerAsync();
+                bool finished = Task.WaitAll(auth, TestConfiguration.PassingTestTimeoutMilliseconds);
                 Assert.True(finished, "Handshake completed in the allotted time");
-                Task[] msgTasks = new Task[3];
-                msgTasks[0] = client.WriteAsync(_sampleMsg, 0, _sampleMsg.Length);
-                msgTasks[1] = client.ReadAsync(recvBuf, 0, recvBuf.Length);
-                msgTasks[2] = serverTask;
+
+                Task serverTask = server.PollMessageAsync(2);
+                Task[] msgTasks = new Task[5];
+                msgTasks[0] = client.WriteAsync(_firstMessage, 0, _firstMessage.Length);
+                msgTasks[1] = client.WriteAsync(_secondMessage, 0, _secondMessage.Length);
+                msgTasks[2] = client.ReadAsync(firstRecvBuffer, 0, firstRecvBuffer.Length);
+                msgTasks[3] = client.ReadAsync(secondRecvBuffer, 0, secondRecvBuffer.Length);
+                msgTasks[4] = serverTask;
                 finished = Task.WaitAll(msgTasks, TestConfiguration.PassingTestTimeoutMilliseconds);
                 Assert.True(finished, "Messages sent and received in the allotted time");
-                Assert.True(_sampleMsg.SequenceEqual(recvBuf));
+                Assert.True(_firstMessage.SequenceEqual(firstRecvBuffer), "The first message received is as expected");
+                Assert.True(_secondMessage.SequenceEqual(secondRecvBuffer), "The second message received is as expected");
             }
         }
 
@@ -324,7 +338,7 @@ namespace System.Net.Security.Tests
             VirtualNetwork network = new VirtualNetwork();
 
             using (var clientStream = new VirtualNetworkStream(network, isServer: false))
-            using (var client = new UnixGssFakeNegotiateStream(clientStream))
+            using (var client = new NegotiateStream(clientStream))
             {
                 Assert.False(client.IsAuthenticated, "client is not authenticated before AuthenticateAsClient call");
 
@@ -347,7 +361,7 @@ namespace System.Net.Security.Tests
             VirtualNetwork network = new VirtualNetwork();
 
             using (var clientStream = new VirtualNetworkStream(network, isServer: false))
-            using (var client = new UnixGssFakeNegotiateStream(clientStream))
+            using (var client = new NegotiateStream(clientStream))
             {
                 Assert.False(client.IsAuthenticated, "client is not authenticated by default");
 
@@ -373,7 +387,7 @@ namespace System.Net.Security.Tests
             VirtualNetwork network = new VirtualNetwork();
 
             using (var clientStream = new VirtualNetworkStream(network, isServer: false))
-            using (var client = new UnixGssFakeNegotiateStream(clientStream))
+            using (var client = new NegotiateStream(clientStream))
             {
                 Assert.False(client.IsAuthenticated, "client stream is not authenticated by default");
 
@@ -399,7 +413,7 @@ namespace System.Net.Security.Tests
             VirtualNetwork network = new VirtualNetwork();
 
             using (var clientStream = new VirtualNetworkStream(network, isServer: false))
-            using (var client = new UnixGssFakeNegotiateStream(clientStream))
+            using (var client = new NegotiateStream(clientStream))
             {
                 Assert.False(client.IsAuthenticated, "client stream is not authenticated by default");
 

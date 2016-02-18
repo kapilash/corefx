@@ -10,19 +10,26 @@ namespace System.Net.Security.Tests
     internal class UnixGssFakeNegotiateStream : NegotiateStream
     {
         private static Action<object> s_serverLoop = ServerLoop;
+        private static Action<object> s_msgLoop = MessageLoop;
         private readonly UnixGssFakeStreamFramer _framer;
         private SafeGssContextHandle _context;
         private volatile int _dataMsgCount;
 
-        public UnixGssFakeNegotiateStream(Stream innerStream, int dataMessages = 0) : base(innerStream)
+        public UnixGssFakeNegotiateStream(Stream innerStream) : base(innerStream)
         {
             _framer = new UnixGssFakeStreamFramer(innerStream);
-            _dataMsgCount = dataMessages;
+            _dataMsgCount = 0;
         }
 
         public override Task AuthenticateAsServerAsync()
         {
             return Task.Factory.StartNew(s_serverLoop, (object)this);
+        }
+
+        public Task PollMessageAsync(int count)
+        {
+            _dataMsgCount = count;
+            return Task.Factory.StartNew(s_msgLoop, (object)this);
         }
 
         public static void GetDefaultKerberosCredentials(string username, string password)
@@ -32,7 +39,6 @@ namespace System.Net.Security.Tests
             {
                 return;
             }
-
         }
 
         private static void ServerLoop(object state)
@@ -42,31 +48,34 @@ namespace System.Net.Security.Tests
             bool handshakeDone = false;
             do
             {
-                if (!handshakeDone)
+                byte[] inBuf = thisRef._framer.ReadHandshakeFrame();
+                byte[] outBuf = null;
+                try
                 {
-                    byte[] inBuf = thisRef._framer.ReadHandshakeFrame();
-                    byte[] outBuf = null;
-                    try
-                    {
-                        handshakeDone = EstablishSecurityContext(ref thisRef._context, inBuf, out outBuf);
-                        thisRef._framer.WriteHandshakeFrame(outBuf, 0, outBuf.Length);
-                    }
-                    catch (Interop.NetSecurityNative.GssApiException e)
-                    {
-                        thisRef._framer.WriteHandshakeFrame(e);
-                        handshakeDone = true;
-                    }
+                    handshakeDone = EstablishSecurityContext(ref thisRef._context, inBuf, out outBuf);
+                    thisRef._framer.WriteHandshakeFrame(outBuf, 0, outBuf.Length);
                 }
-                else if (thisRef._dataMsgCount > 0)
+                catch (Interop.NetSecurityNative.GssApiException e)
                 {
-                    byte[] inBuf = thisRef._framer.ReadDataFrame();
-                    byte[] unwrapped = UnwrapMessage(thisRef._context, inBuf);
-                    byte[] outMsg = WrapMessage(thisRef._context, unwrapped);
-                    thisRef._framer.WriteDataFrame(outMsg, 0, outMsg.Length);
-                    thisRef._dataMsgCount--;
+                    thisRef._framer.WriteHandshakeFrame(e);
+                    handshakeDone = true;
                 }
             }
-            while (!handshakeDone || thisRef._dataMsgCount > 0);
+            while (!handshakeDone);
+        }
+
+        private static void MessageLoop(object state)
+        {
+            UnixGssFakeNegotiateStream thisRef = (UnixGssFakeNegotiateStream)state;
+            var header = new byte[5];
+            while (thisRef._dataMsgCount > 0)
+            {
+                byte[] inBuf = thisRef._framer.ReadDataFrame();
+                byte[] unwrapped = UnwrapMessage(thisRef._context, inBuf);
+                byte[] outMsg = WrapMessage(thisRef._context, unwrapped);
+                thisRef._framer.WriteDataFrame(outMsg, 0, outMsg.Length);
+                thisRef._dataMsgCount--;
+            }
         }
 
         private static bool EstablishSecurityContext(
