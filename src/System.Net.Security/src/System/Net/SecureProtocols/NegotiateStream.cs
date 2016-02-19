@@ -97,7 +97,7 @@ namespace System.Net.Security
 #endif
                 _negoState.ValidateCreateContext(_package, false, credential, targetName, binding, requiredProtectionLevel, allowedImpersonationLevel);
 
-                LazyAsyncResult result = new LazyAsyncResult(_negoState, asyncState, asyncCallback);
+                LazyAsyncResult result = null; /*new LazyAsyncResult(_negoState, asyncState, asyncCallback);*/
                 _negoState.ProcessAuthentication(result);
 
                 return result;
@@ -180,7 +180,11 @@ namespace System.Net.Security
 
         public virtual Task AuthenticateAsClientAsync(NetworkCredential credential, string targetName)
         {
-            return Task.Factory.FromAsync(BeginAuthenticateAsClient, EndAuthenticateAsClient, credential, targetName, null);
+            return
+                Task.Run(
+                    () =>
+                        BeginAuthenticateAsClient(credential, targetName, null, null));
+            // return Task.Factory.FromAsync(BeginAuthenticateAsClient, EndAuthenticateAsClient, credential, targetName, null);
         }
 
         public virtual Task AuthenticateAsClientAsync(
@@ -188,7 +192,12 @@ namespace System.Net.Security
             ProtectionLevel requiredProtectionLevel,
             TokenImpersonationLevel allowedImpersonationLevel)
         {
-            return Task.Factory.FromAsync((callback, state) => BeginAuthenticateAsClient(credential, targetName, requiredProtectionLevel, allowedImpersonationLevel, callback, state), EndAuthenticateAsClient, null);
+            //return Task.Factory.FromAsync((callback, state) => BeginAuthenticateAsClient(credential, targetName, requiredProtectionLevel, allowedImpersonationLevel, callback, state), EndAuthenticateAsClient, null);
+            return
+                Task.Run(
+                    () =>
+                        BeginAuthenticateAsClient(credential, targetName, requiredProtectionLevel,
+                            allowedImpersonationLevel, null, null));
         }
 
         public virtual Task AuthenticateAsClientAsync(NetworkCredential credential, ChannelBinding binding, string targetName)

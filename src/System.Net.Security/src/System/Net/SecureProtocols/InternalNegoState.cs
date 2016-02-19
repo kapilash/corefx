@@ -18,8 +18,10 @@ namespace System.Net.Security
     // It encapsulates security context and does the real work in authentication and
     // user data encryption
     //
-    internal class NegoState
+    internal partial class NegoState
     {
+        private const int ERROR_TRUST_FAILURE = 1790;   // Used to serialize protectionLevel or impersonationLevel mismatch error to the remote side.
+
         private static readonly byte[] s_emptyMessage = new byte[0];
         private static readonly AsyncCallback s_readCallback = new AsyncCallback(ReadCallback);
         private static readonly AsyncCallback s_writeCallback = new AsyncCallback(WriteCallback);
@@ -34,7 +36,6 @@ namespace System.Net.Security
 
         private int _nestedAuth;
 
-        internal const int ERROR_TRUST_FAILURE = 1790;   // Used to serialize protectionLevel or impersonationLevel mismatch error to the remote side.
         internal const int MaxReadFrameSize = 64 * 1024;
         internal const int MaxWriteDataSize = 63 * 1024; // 1k for the framing and trailer that is always less as per SSPI.
 
@@ -67,12 +68,6 @@ namespace System.Net.Security
             {
                 return NegotiationInfoClass.Negotiate;
             }
-        }
-
-        internal IIdentity GetIdentity()
-        {
-            CheckThrow(true);
-            return NegotiateStreamPal.GetIdentity(_context);
         }
 
         internal void ValidateCreateContext(
@@ -130,7 +125,7 @@ namespace System.Net.Security
                 throw new ArgumentNullException("servicePrincipalName");
             }
 
-            NegotiateStreamPal.ValidateImpersonationLevel(impersonationLevel);
+            ValidateImpersonationLevel(impersonationLevel);
 
             if (_context != null && IsServer != isServer)
             {
@@ -789,7 +784,7 @@ namespace System.Net.Security
 
             if (IsError(statusCode))
             {
-                e = NegotiateStreamPal.CreateExceptionFromError(statusCode);
+                e = CreateExceptionFromError(statusCode);
                 uint error = (uint)e.HResult;
 
                 message = new byte[8];  //sizeof(long)
@@ -824,30 +819,6 @@ namespace System.Net.Security
             // SSPI seems to ignore this sequence number.
             ++_readSequenceNumber;
             return _context.Decrypt(buffer, offset, count, out newOffset, _readSequenceNumber);
-        }
-
-        internal static void ThrowCredentialException(long error)
-        {
-            Win32Exception e = new Win32Exception((int)error);
-
-            if (e.NativeErrorCode == (int)SecurityStatusPal.LogonDenied)
-            {
-                throw new InvalidCredentialException(SR.net_auth_bad_client_creds, e);
-            }
-
-            if (e.NativeErrorCode == NegoState.ERROR_TRUST_FAILURE)
-            {
-                throw new AuthenticationException(SR.net_auth_context_expectation_remote, e);
-            }
-
-            throw new AuthenticationException(SR.net_auth_alert, e);
-        }
-
-        internal static bool IsLogonDeniedException(Exception exception)
-        {
-            Win32Exception win32exception = exception as Win32Exception;
-
-            return (win32exception != null) && (win32exception.NativeErrorCode == (int)SecurityStatusPal.LogonDenied);
         }
     }
 }

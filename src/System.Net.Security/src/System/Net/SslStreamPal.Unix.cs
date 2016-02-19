@@ -35,12 +35,12 @@ namespace System.Net
 
         public static SecurityStatusPal InitializeSecurityContext(ref SafeFreeCredentials credential, ref SafeDeleteContext context,
             string targetName, SecurityBuffer inputBuffer, SecurityBuffer outputBuffer)
-        {        
+        {
             return HandshakeInternal(credential, ref context, inputBuffer, outputBuffer, false, false);
         }
 
         public static SecurityStatusPal InitializeSecurityContext(SafeFreeCredentials credential, ref SafeDeleteContext context, string targetName, SecurityBuffer[] inputBuffers, SecurityBuffer outputBuffer)
-        {          
+        {
             Debug.Assert(inputBuffers.Length == 2);
             Debug.Assert(inputBuffers[1].token == null);
             return HandshakeInternal(credential, ref context, inputBuffers[0], outputBuffer, false, false);
@@ -49,9 +49,9 @@ namespace System.Net
         public static SafeFreeCredentials AcquireCredentialsHandle(X509Certificate certificate,
             SslProtocols protocols, EncryptionPolicy policy, bool isServer)
         {
-            return new SafeFreeCredentials(certificate, protocols, policy);
+            return new SafeFreeSslCredentials(certificate, protocols, policy);
         }
-        
+
         public static SecurityStatusPal EncryptMessage(SafeDeleteContext securityContext, byte[] buffer, int size, int headerSize, int trailerSize, out int resultSize)
         {
             // Unencrypted data starts at an offset of headerSize
@@ -71,7 +71,7 @@ namespace System.Net
 
         public static SafeFreeContextBufferChannelBinding QueryContextChannelBinding(SafeDeleteContext securityContext, ChannelBindingKind attribute)
         {
-            SafeChannelBindingHandle bindingHandle = Interop.OpenSsl.QueryChannelBinding(securityContext.SslContext, attribute);
+            SafeChannelBindingHandle bindingHandle = Interop.OpenSsl.QueryChannelBinding(((SafeDeleteSslContext)securityContext).SslContext, attribute);
             var refHandle = bindingHandle == null ? null : new SafeFreeContextBufferChannelBinding(bindingHandle);
             return refHandle;
         }
@@ -83,7 +83,7 @@ namespace System.Net
 
         public static void QueryContextConnectionInfo(SafeDeleteContext securityContext, out SslConnectionInfo connectionInfo)
         {
-            connectionInfo = new SslConnectionInfo(securityContext.SslContext);
+            connectionInfo = new SslConnectionInfo(((SafeDeleteSslContext)securityContext).SslContext);
         }
 
         private static SecurityStatusPal HandshakeInternal(SafeFreeCredentials credential, ref SafeDeleteContext context,
@@ -95,7 +95,7 @@ namespace System.Net
             {
                 if ((null == context) || context.IsInvalid)
                 {
-                    context = new SafeDeleteContext(credential, isServer, remoteCertRequired);
+                    context = new SafeDeleteSslContext(credential as SafeFreeSslCredentials, isServer, remoteCertRequired);
                 }
 
                 byte[] output = null;
@@ -104,11 +104,11 @@ namespace System.Net
 
                 if (null == inputBuffer)
                 {
-                    done = Interop.OpenSsl.DoSslHandshake(context.SslContext, null, 0, 0, out output, out outputSize);
+                    done = Interop.OpenSsl.DoSslHandshake(((SafeDeleteSslContext)context).SslContext, null, 0, 0, out output, out outputSize);
                 }
                 else
                 {
-                    done = Interop.OpenSsl.DoSslHandshake(context.SslContext, inputBuffer.token, inputBuffer.offset, inputBuffer.size, out output, out outputSize);
+                    done = Interop.OpenSsl.DoSslHandshake(((SafeDeleteSslContext)context).SslContext, inputBuffer.token, inputBuffer.offset, inputBuffer.size, out output, out outputSize);
                 }
 
                 outputBuffer.size = outputSize;
@@ -121,7 +121,7 @@ namespace System.Net
             {
                 // TODO: This Debug.Fail is triggering on Linux in many test cases #4317
                 // Debug.Fail("Exception Caught. - " + ex);
-                return SecurityStatusPal.InternalError;             
+                return SecurityStatusPal.InternalError;
             }
         }
 
@@ -133,7 +133,7 @@ namespace System.Net
                 Interop.Ssl.SslErrorCode errorCode = Interop.Ssl.SslErrorCode.SSL_ERROR_NONE;
 
 
-                SafeSslHandle scHandle = securityContext.SslContext;
+                SafeSslHandle scHandle = ((SafeDeleteSslContext)securityContext).SslContext;
 
                 resultSize = encrypt ?
                     Interop.OpenSsl.Encrypt(scHandle, buffer, offset, size, out errorCode) :
@@ -160,3 +160,4 @@ namespace System.Net
         }
     }
 }
+
