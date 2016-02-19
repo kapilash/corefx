@@ -196,6 +196,7 @@ static int32_t NetNtlmNative_build_ntlm2_master(
         return status;
     }
 
+    heim_ntlm_free_buf(masterKey);
     uint8_t* exportKey = NetNtlmNative_EVPEncrypt(ntlmv2hash, sessionKey->data, sessionKey->length);
     delete[] ntlmv2hash;
     masterKey->length = sessionKey->length;
@@ -244,6 +245,7 @@ extern "C" int32_t NetNtlmNative_CreateType3Message(struct PAL_NtlmBuffer* key,
     int32_t status = 0;
     ntlm_buf masterKey{.length = 0, .data = nullptr};
     ntlm_buf ntlmSessionKey{.length = 0, .data = nullptr};
+    ntlm_buf ntlmBuffer{.length = 0, .data = nullptr};
 
     if (type2->targetinfo.length == 0)
     {
@@ -264,7 +266,6 @@ extern "C" int32_t NetNtlmNative_CreateType3Message(struct PAL_NtlmBuffer* key,
         return status;
     }
 
-    ntlm_buf ntlmBuffer{.length = 0, .data = nullptr};
     type3.sessionkey = masterKey;
     status = heim_ntlm_encode_type3(&type3, &ntlmBuffer);
     if (status != 0)

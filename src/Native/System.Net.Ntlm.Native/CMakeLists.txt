@@ -2,7 +2,7 @@ project(System.Net.Ntlm.Native)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-add_definitions(-DPIC=1)
+add_definitions(-DPIC=1 -Wno-padded)
 
 find_library(LIB_HEIMNTLM NAMES heimntlm PATHS /usr/heimdal/lib /usr/lib/x86_64-linux-gnu/heimdal/)
 find_package(OpenSSL REQUIRED)
