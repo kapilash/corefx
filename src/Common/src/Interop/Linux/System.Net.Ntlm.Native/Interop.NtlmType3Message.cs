@@ -30,8 +30,8 @@ internal static partial class Interop
                 Debug.Assert(count >= 0 , " count must be a valid value");
                 Debug.Assert(type2Data.Length >= offset + count, " count and offset must match the given buffer");
 
-                int status = Interop.NetSecurityNative.NtlmDecodeType2(type2Data, offset, count, out _type2Handle);
-                Interop.NetSecurityNative.NtlmException.ThrowIfError(status);
+                int status = Interop.NetNtlmNative.NtlmDecodeType2(type2Data, offset, count, out _type2Handle);
+                Interop.NetNtlmNative.NtlmException.ThrowIfError(status);
             }
 
             public byte[] GetResponse(uint flags, string username, string password, string domain,
@@ -42,14 +42,14 @@ internal static partial class Interop
                 Debug.Assert(domain != null,  "domain cannot be null");
 
                 sessionKey = null;
-                Interop.NetSecurityNative.NtlmBuffer sessionKeyBuffer = default(Interop.NetSecurityNative.NtlmBuffer);
-                Interop.NetSecurityNative.NtlmBuffer outputData = default(Interop.NetSecurityNative.NtlmBuffer);
+                Interop.NetNtlmNative.NtlmBuffer sessionKeyBuffer = default(Interop.NetNtlmNative.NtlmBuffer);
+                Interop.NetNtlmNative.NtlmBuffer outputData = default(Interop.NetNtlmNative.NtlmBuffer);
 
                 try
                 {
-                    status = Interop.NetSecurityNative.CreateType3Message(password, _type2Handle, username, domain, flags,
+                    int status = Interop.NetNtlmNative.CreateType3Message(password, _type2Handle, username, domain, flags,
                         ref sessionKeyBuffer, ref outputData);
-                    Interop.NetSecurityNative.NtlmException.ThrowIfError(status);
+                    Interop.NetNtlmNative.NtlmException.ThrowIfError(status);
 
                     sessionKey = sessionKeyBuffer.ToByteArray();
                     return outputData.ToByteArray();

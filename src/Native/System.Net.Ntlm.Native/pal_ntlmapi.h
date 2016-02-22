@@ -32,7 +32,7 @@ extern "C" void NetNtlmNative_ReleaseNtlmBuffer(void* buffer, uint64_t length);
 /*
 Shims heim_ntlm_encode_type1 method.
 */
-extern "C" int32_t NetSecurityNative_NtlmEncodeType1(uint32_t flags, struct PAL_NtlmBuffer* outBuffer)
+extern "C" int32_t NetNtlmNative_NtlmEncodeType1(uint32_t flags, struct PAL_NtlmBuffer* outBuffer);
 
 /*
 Shims heim_ntlm_decode_type2 method.
@@ -47,10 +47,10 @@ extern "C" void NetNtlmNative_NtlmFreeType2(ntlm_type2* type2);
 /*
 Implements Type3 msg proccessing logic
 */
-extern "C" int32_t NetSecurityNative_CreateType3Message(const char* password,
-                                                        ntlm_type2* type2,
-                                                        char* username,
-                                                        char* domain,
-                                                        uint32_t flags,
-                                                        struct PAL_NtlmBuffer* outSessionKey,
-                                                        struct PAL_NtlmBuffer* outBuffer);
+extern "C" int32_t NetNtlmNative_CreateType3Message(const char* password,
+                                                    ntlm_type2* type2,
+                                                    char* username,
+                                                    char* domain,
+                                                    uint32_t flags,
+                                                    struct PAL_NtlmBuffer* outSessionKey,
+                                                    struct PAL_NtlmBuffer* outBuffer);

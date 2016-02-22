@@ -57,7 +57,7 @@ extern "C" void NetNtlmNative_ReleaseNtlmBuffer(void* buffer, uint64_t length)
     heim_ntlm_free_buf(&ntlmBuffer);
 }
 
-extern "C" int32_t NetSecurityNative_NtlmEncodeType1(uint32_t flags, struct PAL_NtlmBuffer* outBuffer)
+extern "C" int32_t NetNtlmNative_NtlmEncodeType1(uint32_t flags, struct PAL_NtlmBuffer* outBuffer)
 {
     assert(outBuffer != nullptr);
 
@@ -68,8 +68,7 @@ extern "C" int32_t NetSecurityNative_NtlmEncodeType1(uint32_t flags, struct PAL_
     return NetNtlmNative_SetBufferLength(heim_ntlm_encode_type1(&type1, &ntlmBuffer), &ntlmBuffer, outBuffer);
 }
 
-extern "C" int32_t
-NetSecurityNative_NtlmDecodeType2(uint8_t* data, int32_t offset, int32_t count, ntlm_type2** type2)
+extern "C" int32_t NetNtlmNative_NtlmDecodeType2(uint8_t* data, int32_t offset, int32_t count, ntlm_type2** type2)
 {
     assert(data != nullptr);
     assert(offset >= 0);
@@ -88,7 +87,7 @@ NetSecurityNative_NtlmDecodeType2(uint8_t* data, int32_t offset, int32_t count, 
     return stat;
 }
 
-extern "C" void NetSecurityNative_NtlmFreeType2(ntlm_type2* type2)
+extern "C" void NetNtlmNative_NtlmFreeType2(ntlm_type2* type2)
 {
     assert(type2 != nullptr);
 
@@ -96,7 +95,7 @@ extern "C" void NetSecurityNative_NtlmFreeType2(ntlm_type2* type2)
     delete type2;
 }
 
-static int32_t NetSecurityNative_NtlmNtKey(const char* password, struct PAL_NtlmBuffer* outBuffer)
+static int32_t NetNtlmNative_NtlmNtKey(const char* password, struct PAL_NtlmBuffer* outBuffer)
 {
     assert(outBuffer != nullptr);
     assert(password != nullptr);
@@ -105,14 +104,14 @@ static int32_t NetSecurityNative_NtlmNtKey(const char* password, struct PAL_Ntlm
     return NetNtlmNative_SetBufferLength(heim_ntlm_nt_key(password, &ntlmBuffer), &ntlmBuffer, outBuffer);
 }
 
-static int32_t NetSecurityNative_NtlmCalculateResponse(int32_t isLM,
-                                                       const struct PAL_NtlmBuffer* key,
-                                                       ntlm_type2* type2,
-                                                       char* username,
-                                                       char* target,
-                                                       uint8_t* baseSessionKey,
-                                                       int32_t baseSessionKeyLen,
-                                                       struct PAL_NtlmBuffer* outBuffer)
+static int32_t NetNtlmNative_NtlmCalculateResponse(int32_t isLM,
+                                                   const struct PAL_NtlmBuffer* key,
+                                                   ntlm_type2* type2,
+                                                   char* username,
+                                                   char* target,
+                                                   uint8_t* baseSessionKey,
+                                                   int32_t baseSessionKeyLen,
+                                                   struct PAL_NtlmBuffer* outBuffer)
 {
     // reference doc: http://msdn.microsoft.com/en-us/library/cc236700.aspx
     assert(isLM == 0 || isLM == 1);
@@ -205,13 +204,13 @@ static int32_t NetNtlmNative_build_ntlm2_master(
     return status;
 }
 
-extern "C" int32_t NetSecurityNative_CreateType3Message(const char* password,
-                                                        ntlm_type2* type2,
-                                                        char* username,
-                                                        char* domain,
-                                                        uint32_t flags,
-                                                        struct PAL_NtlmBuffer* outSessionKey,
-                                                        struct PAL_NtlmBuffer* outBuffer)
+extern "C" int32_t NetNtlmNative_CreateType3Message(const char* password,
+                                                    ntlm_type2* type2,
+                                                    char* username,
+                                                    char* domain,
+                                                    uint32_t flags,
+                                                    struct PAL_NtlmBuffer* outSessionKey,
+                                                    struct PAL_NtlmBuffer* outBuffer)
 {
     assert(type2 != nullptr);
     assert(username != nullptr);
@@ -225,7 +224,7 @@ extern "C" int32_t NetSecurityNative_CreateType3Message(const char* password,
     outSessionKey->data = nullptr;
 
     struct PAL_NtlmBuffer key, lmResponse, ntlmResponse;
-    int32_t status = NetSecurityNative_NtlmNtKey(password, &key);
+    int32_t status = NetNtlmNative_NtlmNtKey(password, &key);
     if (status)
     {
         return status;
@@ -234,18 +233,20 @@ extern "C" int32_t NetSecurityNative_CreateType3Message(const char* password,
     // reference doc: http://msdn.microsoft.com/en-us/library/cc236700.aspx
     uint8_t baseSessionKey[MD5_DIGEST_LENGTH];
     int32_t baseSessionKeyLen = static_cast<int32_t>(sizeof(baseSessionKey));
-    status = NetSecurityNative_NtlmCalculateResponse(true, &key, type2, username, domain, baseSessionKey, baseSessionKeyLen, &lmResponse);
+    status = NetNtlmNative_NtlmCalculateResponse(
+        true, &key, type2, username, domain, baseSessionKey, baseSessionKeyLen, &lmResponse);
     if (status)
     {
-        NetSecurityNative_ReleaseNtlmBuffer(key.data, key.length);
+        NetNtlmNative_ReleaseNtlmBuffer(key.data, key.length);
         return status;
     }
 
-    status = NetSecurityNative_NtlmCalculateResponse(false, &key, type2, username, domain, baseSessionKey, baseSessionKeyLen, &ntlmResponse);
+    status = NetNtlmNative_NtlmCalculateResponse(
+        false, &key, type2, username, domain, baseSessionKey, baseSessionKeyLen, &ntlmResponse);
     if (status)
     {
-        NetSecurityNative_ReleaseNtlmBuffer(key.data, key.length);
-        NetSecurityNative_ReleaseNtlmBuffer(lmResponse.data, lmResponse.length);
+        NetNtlmNative_ReleaseNtlmBuffer(key.data, key.length);
+        NetNtlmNative_ReleaseNtlmBuffer(lmResponse.data, lmResponse.length);
         return status;
     }
 
@@ -275,20 +276,20 @@ extern "C" int32_t NetSecurityNative_CreateType3Message(const char* password,
         status =
             NetNtlmNative_build_ntlm2_master(baseSessionKey, baseSessionKeyLen, &blob, &ntlmSessionKey, &masterKey);
     }
-    NetSecurityNative_ReleaseNtlmBuffer(key.data, key.length);
+    NetNtlmNative_ReleaseNtlmBuffer(key.data, key.length);
 
     status = NetNtlmNative_SetBufferLength(status, &ntlmSessionKey, outSessionKey);
     if (status != 0)
     {
-        NetSecurityNative_ReleaseNtlmBuffer(lmResponse.data, lmResponse.length);
-        NetSecurityNative_ReleaseNtlmBuffer(ntlmResponse.data, ntlmResponse.length);
+        NetNtlmNative_ReleaseNtlmBuffer(lmResponse.data, lmResponse.length);
+        NetNtlmNative_ReleaseNtlmBuffer(ntlmResponse.data, ntlmResponse.length);
         return status;
     }
 
     type3.sessionkey = masterKey;
     status = heim_ntlm_encode_type3(&type3, &ntlmBuffer);
-    NetSecurityNative_ReleaseNtlmBuffer(lmResponse.data, lmResponse.length);
-    NetSecurityNative_ReleaseNtlmBuffer(ntlmResponse.data, ntlmResponse.length);
+    NetNtlmNative_ReleaseNtlmBuffer(lmResponse.data, lmResponse.length);
+    NetNtlmNative_ReleaseNtlmBuffer(ntlmResponse.data, ntlmResponse.length);
     if (status != 0)
     {
         heim_ntlm_free_buf(&ntlmBuffer);

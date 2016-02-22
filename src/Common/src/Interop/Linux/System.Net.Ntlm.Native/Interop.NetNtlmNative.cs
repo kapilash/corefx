@@ -20,13 +20,13 @@ internal static partial class Interop
         [DllImport(Interop.Libraries.NetNtlmNative, EntryPoint="NetNtlmNative_ReleaseNtlmBuffer")]
         internal static extern int ReleaseNtlmBuffer(IntPtr bufferPtr, UInt64 length);
 
-        [DllImport(Interop.Libraries.NetSecurityNative, EntryPoint="NetSecurityNative_NtlmEncodeType1")]
+        [DllImport(Interop.Libraries.NetNtlmNative, EntryPoint="NetNtlmNative_NtlmEncodeType1")]
         internal static extern int NtlmEncodeType1(uint flags, ref NtlmBuffer buffer);
 
-        [DllImport(Interop.Libraries.NetSecurityNative, EntryPoint="NetSecurityNative_NtlmDecodeType2")]
+        [DllImport(Interop.Libraries.NetNtlmNative, EntryPoint="NetNtlmNative_NtlmDecodeType2")]
         internal static extern int NtlmDecodeType2(byte[] data, int offset, int count, out SafeNtlmType2Handle type2Handle);
 
-        [DllImport(Interop.Libraries.NetSecurityNative, EntryPoint="NetSecurityNative_NtlmFreeType2")]
+        [DllImport(Interop.Libraries.NetNtlmNative, EntryPoint="NetNtlmNative_NtlmFreeType2")]
         internal static extern int NtlmFreeType2(IntPtr type2Handle);
 
         [DllImport(Interop.Libraries.NetNtlmNative, EntryPoint="NetNtlmNative_CreateType3Message", CharSet = CharSet.Ansi)]
