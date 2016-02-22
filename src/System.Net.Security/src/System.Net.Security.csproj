@@ -351,14 +351,14 @@
     <Compile Include="$(CommonPath)\Interop\Linux\System.Net.Ntlm.Native\SecuritySafeHandles.cs"> 
       <Link>Common\Interop\Linux\System.Net.Ntlm.Native\SecuritySafeHandles.cs</Link> 
     </Compile> 
-    <Compile Include="$(CommonPath)\Interop\Linux\System.Net.Ntlm.Native\Interop.HeimdalNtlm.cs">
-      <Link>Common\Interop\Linux\System.Net.Ntlm.Native\Interop.HeimdalNtlm.cs</Link>
+    <Compile Include="$(CommonPath)\Interop\Linux\System.Net.Ntlm.Native\Interop.Ntlm.cs">
+      <Link>Common\Interop\Linux\System.Net.Ntlm.Native\Interop.Ntlm.cs</Link>
     </Compile>
-    <Compile Include="$(CommonPath)\Interop\Linux\System.Net.Ntlm.Native\Interop.HeimdalNtlmException.cs"> 
-      <Link>Common\Interop\Linux\System.Net.Ntlm.Native\Interop.HeimdalNtlmException.cs</Link> 
+    <Compile Include="$(CommonPath)\Interop\Linux\System.Net.Ntlm.Native\Interop.NtlmException.cs"> 
+      <Link>Common\Interop\Linux\System.Net.Ntlm.Native\Interop.NtlmException.cs</Link> 
     </Compile> 
-    <Compile Include="$(CommonPath)\Interop\Linux\System.Net.Ntlm.Native\Interop.Ntlm.cs"> 
-      <Link>Common\Interop\Linux\System.Net.Ntlm.Native\Interop.Ntlm.cs</Link> 
+    <Compile Include="$(CommonPath)\Interop\Linux\System.Net.Ntlm.Native\Interop.NetNtlmNative.cs"> 
+      <Link>Common\Interop\Linux\System.Net.Ntlm.Native\Interop.NetNtlmNative.cs</Link> 
     </Compile> 
     <Compile Include="$(CommonPath)\Interop\Linux\System.Net.Ntlm.Native\Interop.NtlmBuffer.cs"> 
       <Link>Common\Interop\Linux\System.Net.Ntlm.Native\Interop.NtlmBuffer.cs</Link> 

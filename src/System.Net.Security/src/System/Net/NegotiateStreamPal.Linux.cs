@@ -24,7 +24,7 @@ namespace System.Net.Security
             {
                 flags = GetInteropNtlmFromContextFlagsPal(inFlags);
                 context = new SafeDeleteNegoContext(credential, flags);
-                outputBuffer.token = Interop.HeimdalNtlm.CreateNegotiateMessage((uint) flags);
+                outputBuffer.token = Interop.Ntlm.CreateNegotiateMessage((uint) flags);
                 retVal = false;
             }
             else
@@ -32,7 +32,7 @@ namespace System.Net.Security
                 SafeDeleteNegoContext negoContext = (SafeDeleteNegoContext) context;
                 flags = negoContext.Flags;
                 byte[] sessionKey;
-                outputBuffer.token = Interop.HeimdalNtlm.CreateAuthenticateMessage(
+                outputBuffer.token = Interop.Ntlm.CreateAuthenticateMessage(
                     (uint) flags,
                     credential.UserName,
                     credential.Password,

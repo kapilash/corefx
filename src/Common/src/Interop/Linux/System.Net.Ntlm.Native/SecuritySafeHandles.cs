@@ -48,10 +48,10 @@ namespace System.Net.Security
     internal sealed partial class SafeDeleteNegoContext : SafeDeleteContext
     {
         private readonly Interop.NetNtlmNative.NtlmFlags _flags;
-        private Interop.HeimdalNtlm.SigningKey _serverSignKey;
-        private Interop.HeimdalNtlm.SealingKey _serverSealKey;
-        private Interop.HeimdalNtlm.SigningKey _clientSignKey;
-        private Interop.HeimdalNtlm.SealingKey _clientSealKey;
+        private Interop.Ntlm.SigningKey _serverSignKey;
+        private Interop.Ntlm.SealingKey _serverSealKey;
+        private Interop.Ntlm.SigningKey _clientSignKey;
+        private Interop.Ntlm.SealingKey _clientSealKey;
 
         public Interop.NetNtlmNative.NtlmFlags Flags
         {
@@ -67,7 +67,7 @@ namespace System.Net.Security
 
         public void SetKeys(byte[] sessionKey)
         {
-            Interop.HeimdalNtlm.CreateKeys(sessionKey, out _serverSignKey, out _serverSealKey, out _clientSignKey, out _clientSealKey);
+            Interop.Ntlm.CreateKeys(sessionKey, out _serverSignKey, out _serverSealKey, out _clientSignKey, out _clientSealKey);
         }
 
         public byte[] MakeClientSignature(byte[] buffer, int offset, int count)

@@ -401,6 +401,7 @@ namespace System.Net.Security
             catch (Exception ex)
             {
                 //TODO (Issue #5890): Print exception until issue is fixed
+                Console.WriteLine("Exception : {0}", ex);
                 Debug.Write("Exception Caught. - " + ex);
                 if (GlobalLog.IsEnabled)
                 {
