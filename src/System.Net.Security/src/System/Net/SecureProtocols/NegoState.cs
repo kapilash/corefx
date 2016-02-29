@@ -791,7 +791,7 @@ namespace System.Net.Security
                 e = NegotiateStreamPal.CreateExceptionFromError(statusCode);
                 uint error = (uint)e.HResult;
 
-                message = new byte[8];  //sizeof(long)
+                message = new byte[sizeof(long)];
                 for (int i = message.Length - 1; i >= 0; --i)
                 {
                     message[i] = (byte)(error & 0xFF);

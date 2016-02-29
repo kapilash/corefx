@@ -39,9 +39,8 @@ static char gss_mech_value[] = "\x2b\x06\x01\x05\x05\x02"; // Binary representat
 
 static void NetSecurityNative_CopyBuffer(gss_buffer_t gssBuffer, struct PAL_GssBuffer* targetBuffer)
 {
-    assert(targetBuffer != nullptr);
     assert(gssBuffer != nullptr);
-    assert(gssBuffer->value == nullptr || gssBuffer->length > 0);
+    assert(targetBuffer != nullptr);
 
     targetBuffer->length = gssBuffer->length;
     targetBuffer->data = static_cast<uint8_t*>(gssBuffer->value);
@@ -55,6 +54,7 @@ static uint32_t NetSecurityNative_AcquireCredSpNego(uint32_t* minorStatus,
     assert(minorStatus != nullptr);
     assert(desiredName != nullptr);
     assert(outputCredHandle != nullptr);
+
 #if HAVE_GSS_SPNEGO_MECHANISM
     gss_OID_set_desc gss_mech_spnego_OID_set_desc = {.count = 1, .elements = GSS_SPNEGO_MECHANISM};
 #else
@@ -102,7 +102,6 @@ extern "C" uint32_t
 NetSecurityNative_ImportUserName(uint32_t* minorStatus, char* inputName, uint32_t inputNameLen, GssName** outputName)
 {
     assert(minorStatus != nullptr);
-    assert(outputName != nullptr);
     assert(inputName != nullptr);
     assert(outputName != nullptr);
 
@@ -140,10 +139,9 @@ extern "C" uint32_t NetSecurityNative_InitSecContext(uint32_t* minorStatus,
     assert(contextHandle != nullptr);
     assert(isNtlm == 0 || isNtlm == 1);
     assert(targetName != nullptr);
-    assert(contextHandle != nullptr);
+    assert(inputBytes != nullptr || inputLength == 0);
     assert(outBuffer != nullptr);
     assert(retFlags != nullptr);
-    assert(inputBytes != nullptr || inputLength == 0);
 
 // Note: claimantCredHandle can be null
 
@@ -186,8 +184,8 @@ extern "C" uint32_t NetSecurityNative_AcceptSecContext(uint32_t* minorStatus,
 {
     assert(minorStatus != nullptr);
     assert(contextHandle != nullptr);
-    assert(outBuffer != nullptr);
     assert(inputBytes != nullptr || inputLength == 0);
+    assert(outBuffer != nullptr);
 
     GssBuffer inputToken{.length = UnsignedCast(inputLength), .value = inputBytes};
     GssBuffer gssBuffer{.length = 0, .value = nullptr};
@@ -249,8 +247,7 @@ extern "C" uint32_t NetSecurityNative_Wrap(uint32_t* minorStatus,
     assert(count >= 0);
     assert(outBuffer != nullptr);
     // count refers to the length of the input message. That is, number of bytes of inputBytes
-    // starting at offset
-    // that need to be wrapped.
+    // starting at offset that need to be wrapped.
 
     int confState;
     GssBuffer inputMessageBuffer{.length = UnsignedCast(count), .value = inputBytes + offset};
@@ -277,7 +274,7 @@ extern "C" uint32_t NetSecurityNative_Unwrap(uint32_t* minorStatus,
     assert(outBuffer != nullptr);
 
     // count refers to the length of the input message. That is, the number of bytes of inputBytes
-    // starting at offset  that need to be wrapped.
+    // starting at offset that need to be wrapped.
     GssBuffer inputMessageBuffer{.length = UnsignedCast(count), .value = inputBytes + offset};
     GssBuffer gssBuffer{.length = 0, .value = nullptr};
     uint32_t majorStatus = gss_unwrap(minorStatus, contextHandle, &inputMessageBuffer, &gssBuffer, nullptr, nullptr);

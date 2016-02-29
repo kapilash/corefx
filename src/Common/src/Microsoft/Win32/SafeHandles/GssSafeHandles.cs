@@ -24,11 +24,7 @@ namespace Microsoft.Win32.SafeHandles
 
             if (status != Interop.NetSecurityNative.Status.GSS_S_COMPLETE)
             {
-                if (retHandle != null)
-                {
-                    retHandle.Dispose();
-                }
-
+                retHandle.Dispose();
                 throw new Interop.NetSecurityNative.GssApiException(status, minorStatus);
             }
 
@@ -45,11 +41,7 @@ namespace Microsoft.Win32.SafeHandles
 
             if (status != Interop.NetSecurityNative.Status.GSS_S_COMPLETE)
             {
-                if (retHandle != null)
-                {
-                    retHandle.Dispose();
-                }
-
+                retHandle.Dispose();
                 throw new Interop.NetSecurityNative.GssApiException(status, minorStatus);
             }
 
@@ -107,11 +99,7 @@ namespace Microsoft.Win32.SafeHandles
 
                 if (status != Interop.NetSecurityNative.Status.GSS_S_COMPLETE)
                 {
-                    if (retHandle != null)
-                    {
-                        retHandle.Dispose();
-                    }
-
+                    retHandle.Dispose();
                     throw new Interop.NetSecurityNative.GssApiException(status, minorStatus);
                 }
             }

@@ -10,7 +10,7 @@
     "System.Security.Cryptography.Algorithms": "4.1.0-rc3-23910",
     "System.Security.Cryptography.X509Certificates": "4.1.0-rc3-23910",
     "System.Security.Principal": "4.0.0",
-    "System.Diagnostics.Process": "4.1.0-rc3-23808",
+    "System.Diagnostics.Process": "4.1.0-rc3-23818",
     "xunit": "2.1.0",
     "xunit.netcore.extensions": "1.0.0-prerelease-00187"
   },

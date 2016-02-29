@@ -33,8 +33,8 @@ internal static partial class Interop
 
             private static string GetGssApiDisplayStatus(Status majorStatus, Status minorStatus)
             {
-                string majorError = GetGssApiDisplayStatus(majorStatus, false);
-                string minorError = GetGssApiDisplayStatus(minorStatus, true);
+                string majorError = GetGssApiDisplayStatus(majorStatus, isMinor: false);
+                string minorError = GetGssApiDisplayStatus(minorStatus, isMinor: true);
 
                 return (majorError != null && minorError != null) ?
                     SR.Format(SR.net_gssapi_operation_failed_detailed, majorError, minorError) :
@@ -44,12 +44,12 @@ internal static partial class Interop
             private static string GetGssApiDisplayStatus(Status status, bool isMinor)
             {
                 GssBuffer displayBuffer = default(GssBuffer);
-                Interop.NetSecurityNative.Status minStat;
 
                 try
                 {
+                    Interop.NetSecurityNative.Status minStat;
                     Interop.NetSecurityNative.Status displayCallStatus = DisplayStatus(out minStat, status, isMinor, ref displayBuffer);
-                    return (Status.GSS_S_COMPLETE != displayCallStatus) ? null : Marshal.PtrToStringAnsi(displayBuffer.data);
+                    return (Status.GSS_S_COMPLETE != displayCallStatus) ? null : Marshal.PtrToStringAnsi(displayBuffer._data);
                 }
                 finally
                 {

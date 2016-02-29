@@ -26,9 +26,7 @@ namespace System.Net.Security
         {
             IIdentity result = null;
             string name = context.IsServer ? context.AssociatedName : context.Spn;
-            string protocol = NegotiationInfoClass.NTLM;
-
-            protocol = context.ProtocolName;
+            string protocol = context.ProtocolName;
 
             if (context.IsServer)
             {
@@ -86,11 +84,7 @@ namespace System.Net.Security
         internal static string QueryContextAuthenticationPackage(SafeDeleteContext securityContext)
         {
             var negotiationInfoClass = SSPIWrapper.QueryContextAttributes(GlobalSSPI.SSPIAuth, securityContext, Interop.SspiCli.ContextAttribute.NegotiationInfo) as NegotiationInfoClass;
-            if (negotiationInfoClass != null)
-            {
-                return negotiationInfoClass.AuthenticationPackage;
-            }
-            return null;
+            return negotiationInfoClass?.AuthenticationPackage;
         }
 
         internal static int QueryMaxTokenSize(string package)
@@ -111,41 +105,38 @@ namespace System.Net.Security
                 (isServer ? Interop.SspiCli.CredentialUse.Inbound : Interop.SspiCli.CredentialUse.Outbound));
         }
 
-        internal static SafeFreeCredentials AcquireCredentialsHandle(string package, bool isServer, NetworkCredential credential)
+        internal unsafe static SafeFreeCredentials AcquireCredentialsHandle(string package, bool isServer, NetworkCredential credential)
         {
-            unsafe
+            SafeSspiAuthDataHandle authData = null;
+            try
             {
-                SafeSspiAuthDataHandle authData = null;
-                try
+                Interop.SecurityStatus result = Interop.SspiCli.SspiEncodeStringsAsAuthIdentity(
+                    credential.UserName, credential.Domain,
+                    credential.Password, out authData);
+
+                if (result != Interop.SecurityStatus.OK)
                 {
-                    Interop.SecurityStatus result = Interop.SspiCli.SspiEncodeStringsAsAuthIdentity(
-                        credential.UserName, credential.Domain,
-                        credential.Password, out authData);
-
-                    if (result != Interop.SecurityStatus.OK)
+                    if (NetEventSource.Log.IsEnabled())
                     {
-                        if (NetEventSource.Log.IsEnabled())
-                        {
-                            NetEventSource.PrintError(
-                                NetEventSource.ComponentType.Security,
-                                SR.Format(
-                                    SR.net_log_operation_failed_with_error,
-                                    "SspiEncodeStringsAsAuthIdentity()",
-                                    String.Format(CultureInfo.CurrentCulture, "0x{0:X}", (int)result)));
-                        }
-
-                        throw new Win32Exception((int)result);
+                        NetEventSource.PrintError(
+                            NetEventSource.ComponentType.Security,
+                            SR.Format(
+                                SR.net_log_operation_failed_with_error,
+                                "SspiEncodeStringsAsAuthIdentity()",
+                                String.Format(CultureInfo.CurrentCulture, "0x{0:X}", (int)result)));
                     }
 
-                    return SSPIWrapper.AcquireCredentialsHandle(GlobalSSPI.SSPIAuth,
-                        package, (isServer ? Interop.SspiCli.CredentialUse.Inbound : Interop.SspiCli.CredentialUse.Outbound), ref authData);
+                    throw new Win32Exception((int)result);
                 }
-                finally
+
+                return SSPIWrapper.AcquireCredentialsHandle(GlobalSSPI.SSPIAuth,
+                    package, (isServer ? Interop.SspiCli.CredentialUse.Inbound : Interop.SspiCli.CredentialUse.Outbound), ref authData);
+            }
+            finally
+            {
+                if (authData != null)
                 {
-                    if (authData != null)
-                    {
-                        authData.Dispose();
-                    }
+                    authData.Dispose();
                 }
             }
         }

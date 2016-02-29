@@ -24,14 +24,14 @@ internal static partial class Interop
             bool isGssMechCode,
             ref GssBuffer buffer);
 
-        [DllImport(Interop.Libraries.NetSecurityNative, CharSet = CharSet.Ansi, EntryPoint="NetSecurityNative_ImportUserName")]
+        [DllImport(Interop.Libraries.NetSecurityNative, EntryPoint="NetSecurityNative_ImportUserName")]
         internal static extern Status ImportUserName(
             out Status minorStatus,
             string inputName,
             int inputNameLen,
             out SafeGssNameHandle outputName);
 
-        [DllImport(Interop.Libraries.NetSecurityNative, CharSet = CharSet.Ansi, EntryPoint="NetSecurityNative_ImportPrincipalName")]
+        [DllImport(Interop.Libraries.NetSecurityNative, EntryPoint="NetSecurityNative_ImportPrincipalName")]
         internal static extern Status ImportPrincipalName(
             out Status minorStatus,
             string inputName,
@@ -49,7 +49,7 @@ internal static partial class Interop
             SafeGssNameHandle desiredName,
             out SafeGssCredHandle outputCredHandle);
 
-        [DllImport(Interop.Libraries.NetSecurityNative, CharSet = CharSet.Ansi, EntryPoint="NetSecurityNative_InitiateCredWithPassword")]
+        [DllImport(Interop.Libraries.NetSecurityNative, EntryPoint="NetSecurityNative_InitiateCredWithPassword")]
         internal static extern Status InitiateCredWithPassword(
             out Status minorStatus,
             SafeGssNameHandle desiredName,

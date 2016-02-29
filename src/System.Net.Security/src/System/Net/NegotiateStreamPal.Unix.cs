@@ -20,8 +20,6 @@ namespace System.Net.Security
     // It encapsulates security context and does the real work in authentication and
     // user data encryption with NEGO SSPI package.
     //
-    // This is part of the NegotiateStream PAL.
-    //
     internal static class NegotiateStreamPal
     {
         // value should match the Windows sspicli NTE_FAIL value
@@ -72,7 +70,6 @@ namespace System.Net.Security
                 throw new PlatformNotSupportedException(SR.net_nego_server_not_supported);
             }
 
-            SafeFreeCredentials outCredential;
             bool isNtlm = string.Equals(package, NegotiationInfoClass.NTLM);
 
             if (isNtlm)
@@ -80,18 +77,10 @@ namespace System.Net.Security
                 throw new PlatformNotSupportedException(SR.net_nego_ntlm_not_supported);
             }
 
-            if (string.IsNullOrEmpty(credential.UserName) || string.IsNullOrEmpty(credential.Password))
-            {
-                // In client case, equivalent of default credentials is to use previous,
-                // cached Kerberos TGT to get service-specific ticket.
-                outCredential = new SafeFreeNegoCredentials(string.Empty, string.Empty, string.Empty);
-            }
-            else
-            {
-                outCredential = new SafeFreeNegoCredentials(credential.UserName, credential.Password, credential.Domain);
-            }
-            return outCredential;
-
+            // Note: In client case, equivalent of default credentials is to use previous, cached Kerberos TGT to get service-specific ticket.
+            return (string.IsNullOrEmpty(credential.UserName) || string.IsNullOrEmpty(credential.Password)) ?
+                new SafeFreeNegoCredentials(string.Empty, string.Empty, string.Empty) :
+                new SafeFreeNegoCredentials(credential.UserName, credential.Password, credential.Domain);
         }
 
         internal static SecurityStatusPal InitializeSecurityContext(
@@ -271,13 +260,14 @@ namespace System.Net.Security
                 outputBuffer.offset = 0;
 
                 outFlags = ContextFlagsAdapterPal.GetContextFlagsPalFromInterop((Interop.NetSecurityNative.GssFlags)outputFlags);
-                Debug.Assert(negoContext.GssContext == null || contextHandle == negoContext.GssContext);
 
                 // Save the inner context handle for further calls to NetSecurity
+                Debug.Assert(negoContext.GssContext == null || contextHandle == negoContext.GssContext);
                 if (null == negoContext.GssContext)
                 {
                     negoContext.SetGssContext(contextHandle);
                 }
+
                 return done ? SecurityStatusPal.CompleteNeeded : SecurityStatusPal.ContinueNeeded;
             }
             catch(Exception ex)
