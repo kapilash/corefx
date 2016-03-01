@@ -51,12 +51,18 @@ Shims the gss_release_buffer method.
 extern "C" void NetSecurityNative_ReleaseGssBuffer(void* buffer, uint64_t length);
 
 /*
-Shims the gss_display_status method.
+Shims the gss_display_status method for minor status (status_type = GSS_C_MECH_CODE).
 */
-extern "C" uint32_t NetSecurityNative_DisplayStatus(uint32_t* minorStatus,
-                                                    uint32_t statusValue,
-                                                    int32_t isGssMechCode,
-                                                    struct PAL_GssBuffer* outBuffer);
+extern "C" uint32_t NetSecurityNative_DisplayMinorStatus(uint32_t* minorStatus,
+                                                         uint32_t statusValue,
+                                                         struct PAL_GssBuffer* outBuffer);
+
+/*
+Shims the gss_display_status method for major status (status_type = GSS_C_GSS_CODE).
+*/
+extern "C" uint32_t NetSecurityNative_DisplayMajorStatus(uint32_t* minorStatus,
+                                                         uint32_t statusValue,
+                                                         struct PAL_GssBuffer* outBuffer);
 
 /*
 Shims the gss_import_name method with nametype = GSS_C_NT_USER_NAME.

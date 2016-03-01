@@ -39,7 +39,7 @@ namespace System.Net.Security
 
         internal static string QueryContextAssociatedName(SafeDeleteContext securityContext)
         {
-            throw new PlatformNotSupportedException();
+            throw new PlatformNotSupportedException(SR.net_nego_server_not_supported);
         }
 
         internal static string QueryContextAuthenticationPackage(SafeDeleteContext securityContext)
@@ -55,7 +55,7 @@ namespace System.Net.Security
 
         internal static string QueryContextClientSpecifiedSpn(SafeDeleteContext securityContext)
         {
-            throw new PlatformNotSupportedException();
+            throw new PlatformNotSupportedException(SR.net_nego_server_not_supported);
         }
 
         internal static SafeFreeCredentials AcquireDefaultCredential(string package, bool isServer)
@@ -134,10 +134,9 @@ namespace System.Net.Security
                 throw new ArgumentOutOfRangeException("impersonationLevel", impersonationLevel.ToString(),
                     SR.net_auth_supported_impl_levels);
             }
-
         }
 
-        internal static Exception CreateExceptionFromError(SecurityStatusPal statusCode)
+        internal static Win32Exception CreateExceptionFromError(SecurityStatusPal statusCode)
         {
             return new Win32Exception(NTE_FAIL);
         }
@@ -246,14 +245,14 @@ namespace System.Net.Security
                 uint outputFlags;
                 SafeGssContextHandle contextHandle = negoContext.GssContext;
                 bool done = Interop.GssApi.EstablishSecurityContext(
-                                  ref contextHandle,
-                                  credential.GssCredential,
-                                  isNtlm,
-                                  negoContext.TargetName,
-                                  inputFlags,
-                                  ((inputBuffer != null) ? inputBuffer.token : null),
-                                  out outputBuffer.token,
-                                  out outputFlags);
+                   ref contextHandle,
+                   credential.GssCredential,
+                   isNtlm,
+                   negoContext.TargetName,
+                   inputFlags,
+                   ((inputBuffer != null) ? inputBuffer.token : null),
+                   out outputBuffer.token,
+                   out outputFlags);
 
                 Debug.Assert(outputBuffer.token != null, "Unexpected null buffer returned by GssApi");
                 outputBuffer.size = outputBuffer.token.Length;

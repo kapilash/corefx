@@ -55,7 +55,7 @@ namespace System.Net.Security.Tests
 
         // checks for avilability of Kerberos related infrastructure
         // on the host. Returns true available, false otherwise
-        public bool CheckAndInitializeKerberos()
+        public bool CheckAndClearCredentials()
         {
             if (_isKrbInstalled)
             {
@@ -100,7 +100,7 @@ namespace System.Net.Security.Tests
         public KerberosTest(KDCSetup fixture)
         {
             _fixture = fixture;
-            _isKrbAvailable = _fixture.CheckAndInitializeKerberos();
+            _isKrbAvailable = _fixture.CheckAndClearCredentials();
         }
 
         [Fact, OuterLoop]
@@ -132,17 +132,17 @@ namespace System.Net.Security.Tests
                 Assert.True(finished, "Handshake completed in the allotted time");
 
                 // Expected Client property values:
-                Assert.True(client.IsAuthenticated, "client is now authenticated");
+                Assert.True(client.IsAuthenticated, "client.IsAuthenticated");
                 Assert.Equal(TokenImpersonationLevel.Identification, client.ImpersonationLevel);
-                Assert.True(client.IsEncrypted, "client is encrypted");
-                Assert.True(client.IsMutuallyAuthenticated, "client is mutually authenticated");
-                Assert.False(client.IsServer, "client is not server");
-                Assert.True(client.IsSigned, "client is signed");
-                Assert.False(client.LeaveInnerStreamOpen, "inner stream remains open");
+                Assert.True(client.IsEncrypted, "client.IsEncrypted");
+                Assert.True(client.IsMutuallyAuthenticated, "client.IsMutuallyAuthenticated");
+                Assert.False(client.IsServer, "client.IsServer");
+                Assert.True(client.IsSigned, "client.IsSigned");
+                Assert.False(client.LeaveInnerStreamOpen, "client.LeaveInnerStreamOpen");
 
                 IIdentity serverIdentity = client.RemoteIdentity;
                 Assert.Equal("Kerberos", serverIdentity.AuthenticationType);
-                Assert.True(serverIdentity.IsAuthenticated, "server identity is authenticated");
+                Assert.True(serverIdentity.IsAuthenticated, "serverIdentity.IsAuthenticated");
                 IdentityValidator.AssertHasName(serverIdentity, target);
             }
         }
@@ -176,17 +176,17 @@ namespace System.Net.Security.Tests
                 Assert.True(finished, "Handshake completed in the allotted time");
 
                 // Expected Client property values:
-                Assert.True(client.IsAuthenticated, "client is authenticated");
+                Assert.True(client.IsAuthenticated, "client.IsAuthenticated");
                 Assert.Equal(TokenImpersonationLevel.Identification, client.ImpersonationLevel);
-                Assert.True(client.IsEncrypted, "client is encrypted");
-                Assert.True(client.IsMutuallyAuthenticated, "mutually authentication is true");
-                Assert.False(client.IsServer, "client is not a server");
-                Assert.True(client.IsSigned, "clientStream is signed");
-                Assert.False(client.LeaveInnerStreamOpen, "Inner stream is open");
+                Assert.True(client.IsEncrypted, "client.IsEncrypted");
+                Assert.True(client.IsMutuallyAuthenticated, "client.IsMutuallyAuthenticated");
+                Assert.False(client.IsServer, "client.IsServer");
+                Assert.True(client.IsSigned, "client.IsSigned");
+                Assert.False(client.LeaveInnerStreamOpen, "client.LeaveInnerStream");
 
                 IIdentity serverIdentity = client.RemoteIdentity;
                 Assert.Equal("Kerberos", serverIdentity.AuthenticationType);
-                Assert.True(serverIdentity.IsAuthenticated, "remote identity of client is authenticated");
+                Assert.True(serverIdentity.IsAuthenticated, "serverIdentity.IsAuthenticated");
                 IdentityValidator.AssertHasName(serverIdentity, target);
             }
         }
@@ -218,17 +218,17 @@ namespace System.Net.Security.Tests
                 Assert.True(finished, "Handshake completed in the allotted time");
 
                 // Expected Client property values:
-                Assert.True(client.IsAuthenticated, "client is authenticated");
+                Assert.True(client.IsAuthenticated, "client.IsAuthenticated");
                 Assert.Equal(TokenImpersonationLevel.Identification, client.ImpersonationLevel);
-                Assert.True(client.IsEncrypted, "client stream is encrypted");
-                Assert.True(client.IsMutuallyAuthenticated, "mutual authentication is true");
-                Assert.False(client.IsServer, "client is not server");
-                Assert.True(client.IsSigned, "client stream is signed");
-                Assert.False(client.LeaveInnerStreamOpen, "inner stream is open");
+                Assert.True(client.IsEncrypted, "client.IsEncrypted");
+                Assert.True(client.IsMutuallyAuthenticated, "client.IsMutuallyAuthenticated");
+                Assert.False(client.IsServer, "client.IsServer");
+                Assert.True(client.IsSigned, "client.IsSigned");
+                Assert.False(client.LeaveInnerStreamOpen, "client.LeaveInnerStreamOpen");
 
                 IIdentity serverIdentity = client.RemoteIdentity;
                 Assert.Equal("Kerberos", serverIdentity.AuthenticationType);
-                Assert.True(serverIdentity.IsAuthenticated, "remote identity is authenticated");
+                Assert.True(serverIdentity.IsAuthenticated, "serverIdentity.IsAuthenticated");
                 IdentityValidator.AssertHasName(serverIdentity, TestConfiguration.HostTarget);
             }
         }
@@ -263,17 +263,17 @@ namespace System.Net.Security.Tests
                 Assert.True(finished, "Handshake completed in the allotted time");
 
                 // Expected Client property values:
-                Assert.True(client.IsAuthenticated, "client is now authenticated");
+                Assert.True(client.IsAuthenticated, "client.IsAuthenticated");
                 Assert.Equal(TokenImpersonationLevel.Identification, client.ImpersonationLevel);
-                Assert.True(client.IsEncrypted, "client stream is encrypted");
-                Assert.True(client.IsMutuallyAuthenticated, "mutual authentication is true");
-                Assert.False(client.IsServer, "client is not server");
-                Assert.True(client.IsSigned, "client stream is signed");
-                Assert.False(client.LeaveInnerStreamOpen, "inner stream is open");
+                Assert.True(client.IsEncrypted, "client.IsEncrypted");
+                Assert.True(client.IsMutuallyAuthenticated, "client.IsMutuallyAuthenticated");
+                Assert.False(client.IsServer, "client.IsServer");
+                Assert.True(client.IsSigned, "client.IsSigned");
+                Assert.False(client.LeaveInnerStreamOpen, "client.LeaveInnerStreamOpen");
 
                 IIdentity serverIdentity = client.RemoteIdentity;
                 Assert.Equal("Kerberos", serverIdentity.AuthenticationType);
-                Assert.True(serverIdentity.IsAuthenticated,"server identity is authenticated");
+                Assert.True(serverIdentity.IsAuthenticated,"serverIdentity.IsAuthenticated");
                 IdentityValidator.AssertHasName(serverIdentity, target);
             }
         }
@@ -464,7 +464,7 @@ namespace System.Net.Security.Tests
         {
             try
             {
-                _fixture.CheckAndInitializeKerberos();
+                _fixture.CheckAndClearCredentials();
             }
             catch
             {

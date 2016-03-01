@@ -20,13 +20,14 @@ internal static partial class Interop
             internal int Copy(byte[] destination, int offset)
             {
                 Debug.Assert(destination != null, "target destination cannot be null");
-                Debug.Assert(offset >= 0 && offset < destination.Length, "invalid offset " + offset);
+                Debug.Assert((offset >= 0 && offset < destination.Length) || destination.Length == 0, "invalid offset " + offset);
 
                 if (_data == IntPtr.Zero || _length == 0)
                 {
                     return 0;
                 }
 
+                // Using Convert.ToInt32 to throw an exception in the unlikely event of too large value of _length
                 int sourceLength = Convert.ToInt32(_length);
                 int destinationAvailable = destination.Length - offset;  // amount of space in the given buffer
                 if (sourceLength > destinationAvailable)

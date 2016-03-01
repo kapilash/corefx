@@ -34,10 +34,11 @@ static_assert(PAL_GSS_COMPLETE == GSS_S_COMPLETE, "");
 static_assert(PAL_GSS_CONTINUE_NEEDED == GSS_S_CONTINUE_NEEDED, "");
 
 #if !HAVE_GSS_SPNEGO_MECHANISM
-static char gss_mech_value[] = "\x2b\x06\x01\x05\x05\x02"; // Binary representation of SPNEGO Oid (RFC 4178)
+static char gss_spnego_oid_value[] = "\x2b\x06\x01\x05\x05\x02"; // Binary representation of SPNEGO Oid (RFC 4178)
 #endif
 
-static void NetSecurityNative_CopyBuffer(gss_buffer_t gssBuffer, struct PAL_GssBuffer* targetBuffer)
+// transfers ownership of the underlying data from gssBuffer to PAL_GssBuffer
+static void NetSecurityNative_MoveBuffer(gss_buffer_t gssBuffer, struct PAL_GssBuffer* targetBuffer)
 {
     assert(gssBuffer != nullptr);
     assert(targetBuffer != nullptr);
@@ -58,7 +59,7 @@ static uint32_t NetSecurityNative_AcquireCredSpNego(uint32_t* minorStatus,
 #if HAVE_GSS_SPNEGO_MECHANISM
     gss_OID_set_desc gss_mech_spnego_OID_set_desc = {.count = 1, .elements = GSS_SPNEGO_MECHANISM};
 #else
-    gss_OID_desc gss_mech_spnego_OID_desc = {.length = 6, .elements = static_cast<void*>(gss_mech_value)};
+    gss_OID_desc gss_mech_spnego_OID_desc = {.length = 6, .elements = static_cast<void*>(gss_spnego_oid_value)};
     gss_OID_set_desc gss_mech_spnego_OID_set_desc = {.count = 1, .elements = &gss_mech_spnego_OID_desc};
 #endif
     return gss_acquire_cred(
@@ -79,23 +80,35 @@ extern "C" uint32_t NetSecurityNative_DeleteSecContext(uint32_t* minorStatus, Gs
     return gss_delete_sec_context(minorStatus, contextHandle, GSS_C_NO_BUFFER);
 }
 
-extern "C" uint32_t NetSecurityNative_DisplayStatus(uint32_t* minorStatus,
-                                                    uint32_t statusValue,
-                                                    int32_t isGssMechCode,
-                                                    struct PAL_GssBuffer* outBuffer)
+static uint32_t NetSecurityNative_DisplayStatus(uint32_t* minorStatus,
+                                                uint32_t statusValue,
+                                                int statusType,
+                                                struct PAL_GssBuffer* outBuffer)
 {
     assert(minorStatus != nullptr);
-    assert(isGssMechCode == 0 || isGssMechCode == 1);
     assert(outBuffer != nullptr);
 
-    int statusType = isGssMechCode ? GSS_C_MECH_CODE : GSS_C_GSS_CODE;
     uint32_t messageContext;
     GssBuffer gssBuffer{.length = 0, .value = nullptr};
     uint32_t majorStatus =
         gss_display_status(minorStatus, statusValue, statusType, GSS_C_NO_OID, &messageContext, &gssBuffer);
 
-    NetSecurityNative_CopyBuffer(&gssBuffer, outBuffer);
+    NetSecurityNative_MoveBuffer(&gssBuffer, outBuffer);
     return majorStatus;
+}
+
+extern "C" uint32_t NetSecurityNative_DisplayMinorStatus(uint32_t* minorStatus,
+                                                         uint32_t statusValue,
+                                                         struct PAL_GssBuffer* outBuffer)
+{
+    return NetSecurityNative_DisplayStatus(minorStatus, statusValue, GSS_C_MECH_CODE, outBuffer);
+}
+
+extern "C" uint32_t NetSecurityNative_DisplayMajorStatus(uint32_t* minorStatus,
+                                                         uint32_t statusValue,
+                                                         struct PAL_GssBuffer* outBuffer)
+{
+    return NetSecurityNative_DisplayStatus(minorStatus, statusValue, GSS_C_GSS_CODE, outBuffer);
 }
 
 extern "C" uint32_t
@@ -151,7 +164,7 @@ extern "C" uint32_t NetSecurityNative_InitSecContext(uint32_t* minorStatus,
     assert(!isNtlm && "NTLM is not supported by MIT libgssapi_krb5");
     (void)isNtlm; // unused
 
-    gss_OID_desc gss_mech_spnego_OID_desc = {.length = 6, .elements = static_cast<void*>(gss_mech_value)};
+    gss_OID_desc gss_mech_spnego_OID_desc = {.length = 6, .elements = static_cast<void*>(gss_spnego_oid_value)};
     gss_OID desiredMech = &gss_mech_spnego_OID_desc;
 #endif
 
@@ -172,7 +185,7 @@ extern "C" uint32_t NetSecurityNative_InitSecContext(uint32_t* minorStatus,
                                                 retFlags,
                                                 nullptr);
 
-    NetSecurityNative_CopyBuffer(&gssBuffer, outBuffer);
+    NetSecurityNative_MoveBuffer(&gssBuffer, outBuffer);
     return majorStatus;
 }
 
@@ -202,7 +215,7 @@ extern "C" uint32_t NetSecurityNative_AcceptSecContext(uint32_t* minorStatus,
                                                   nullptr,
                                                   nullptr);
 
-    NetSecurityNative_CopyBuffer(&gssBuffer, outBuffer);
+    NetSecurityNative_MoveBuffer(&gssBuffer, outBuffer);
     return majorStatus;
 }
 
@@ -255,7 +268,7 @@ extern "C" uint32_t NetSecurityNative_Wrap(uint32_t* minorStatus,
     uint32_t majorStatus =
         gss_wrap(minorStatus, contextHandle, isEncrypt, GSS_C_QOP_DEFAULT, &inputMessageBuffer, &confState, &gssBuffer);
 
-    NetSecurityNative_CopyBuffer(&gssBuffer, outBuffer);
+    NetSecurityNative_MoveBuffer(&gssBuffer, outBuffer);
     return majorStatus;
 }
 
@@ -278,7 +291,7 @@ extern "C" uint32_t NetSecurityNative_Unwrap(uint32_t* minorStatus,
     GssBuffer inputMessageBuffer{.length = UnsignedCast(count), .value = inputBytes + offset};
     GssBuffer gssBuffer{.length = 0, .value = nullptr};
     uint32_t majorStatus = gss_unwrap(minorStatus, contextHandle, &inputMessageBuffer, &gssBuffer, nullptr, nullptr);
-    NetSecurityNative_CopyBuffer(&gssBuffer, outBuffer);
+    NetSecurityNative_MoveBuffer(&gssBuffer, outBuffer);
     return majorStatus;
 }
 

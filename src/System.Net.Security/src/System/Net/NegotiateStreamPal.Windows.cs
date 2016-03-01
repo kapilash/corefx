@@ -210,7 +210,7 @@ namespace System.Net.Security
             }
         }
 
-        internal static Exception CreateExceptionFromError(SecurityStatusPal statusCode)
+        internal static Win32Exception CreateExceptionFromError(SecurityStatusPal statusCode)
         {
             return new Win32Exception((int)SecurityStatusAdapterPal.GetInteropFromSecurityStatusPal(statusCode));
         }

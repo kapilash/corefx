@@ -201,7 +201,7 @@ namespace System.Net.Security
             {
                 _context = new NTAuthentication(isServer, package, credential, servicePrincipalName, flags, channelBinding);
             }
-            catch (Exception e)
+            catch (Win32Exception e)
             {
                 throw new AuthenticationException(SR.net_auth_SSPI, e);
             }

@@ -17,7 +17,7 @@ internal static partial class Interop
 
             public Status MinorStatus
             {
-                get { return _minorStatus;  }
+                get { return _minorStatus;}
             }
 
             public GssApiException(string message) : base(message)
@@ -48,7 +48,9 @@ internal static partial class Interop
                 try
                 {
                     Interop.NetSecurityNative.Status minStat;
-                    Interop.NetSecurityNative.Status displayCallStatus = DisplayStatus(out minStat, status, isMinor, ref displayBuffer);
+                    Interop.NetSecurityNative.Status displayCallStatus = isMinor ?
+                        DisplayMinorStatus(out minStat, status, ref displayBuffer):
+                        DisplayMajorStatus(out minStat, status, ref displayBuffer);
                     return (Status.GSS_S_COMPLETE != displayCallStatus) ? null : Marshal.PtrToStringAnsi(displayBuffer._data);
                 }
                 finally
