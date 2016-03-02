@@ -92,6 +92,7 @@ namespace System.Net.Security
             SecurityBuffer outSecurityBuffer,
             ref ContextFlagsPal contextFlags)
         {
+            Debug.Assert(inSecurityBufferArray == null || inSecurityBufferArray[0].type == SecurityBufferType.Token, "First buffer is a token");
             // TODO (Issue #3718): The second buffer can contain a channel binding which is not supported
             if ((null != inSecurityBufferArray) && (inSecurityBufferArray.Length > 1))
             {
