@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Xunit;
+using Xunit.Abstractions;
 
 namespace System.Net.Security.Tests
 {
@@ -22,17 +23,18 @@ namespace System.Net.Security.Tests
         private const string SudoCommand = "sudo";
         private const string ScriptName = "setup-kdc.sh";
         private const string ScriptUninstallArgs = "--uninstall --yes";
-        private const string PasswordArgFormat = "--password {0}";
+        private const string ScriptInstallArgs = "--password {0} --yes";
         private readonly bool _isKrbInstalled ;
         public readonly string password;
 
         public KDCSetup()
         {
-            _isKrbInstalled = File.Exists(Krb5ConfigFile);
+            _isKrbInstalled = File.Exists(Krb5ConfigFile) &&
+                File.ReadAllText(Krb5ConfigFile).Contains(TestConfiguration.Realm);
             if (!_isKrbInstalled)
             {
                 password = Guid.NewGuid().ToString("N");
-                int exitCode = RunSetupScript(string.Format(PasswordArgFormat, password));
+                int exitCode = RunSetupScript(string.Format(ScriptInstallArgs, password));
                 if (exitCode != 0)
                 {
                     Dispose();
@@ -55,23 +57,19 @@ namespace System.Net.Security.Tests
 
         // checks for avilability of Kerberos related infrastructure
         // on the host. Returns true available, false otherwise
-        public bool CheckAndClearCredentials()
+        public bool CheckAndClearCredentials(ITestOutputHelper output)
         {
-            if (_isKrbInstalled)
+            // Clear the credentials
+            var startInfo = new ProcessStartInfo(KDestroyCmd);
+            startInfo.UseShellExecute = false;
+            startInfo.CreateNoWindow = true;
+            startInfo.Arguments = "-A";
+            using (Process clearCreds = Process.Start(startInfo))
             {
-                // Clear the credentials
-                var startInfo = new ProcessStartInfo(KDestroyCmd);
-                startInfo.UseShellExecute = false;
-                startInfo.CreateNoWindow = true;
-                startInfo.Arguments = "-A";
-                using (Process clearCreds = Process.Start(startInfo))
-                {
-                    clearCreds.WaitForExit();
-                    return (clearCreds.ExitCode == 0);
-                }
+                clearCreds.WaitForExit();
+                output.WriteLine("kdestroy returned {0}", clearCreds.ExitCode);
+                return (clearCreds.ExitCode == 0);
             }
-
-            return false;
         }
 
         private static int RunSetupScript(string args = null)
@@ -96,11 +94,13 @@ namespace System.Net.Security.Tests
         private readonly byte[] _secondMessage = Encoding.UTF8.GetBytes("Sample Second Message");
         private readonly bool _isKrbAvailable; // tests are no-op if kerberos is not available on the host machine
         private readonly KDCSetup _fixture;
+        private readonly ITestOutputHelper _output;
 
-        public KerberosTest(KDCSetup fixture)
+        public KerberosTest(KDCSetup fixture, ITestOutputHelper output)
         {
             _fixture = fixture;
-            _isKrbAvailable = _fixture.CheckAndClearCredentials();
+            _output = output;
+            _isKrbAvailable = _fixture.CheckAndClearCredentials(_output);
         }
 
         [Fact, OuterLoop]
@@ -109,6 +109,7 @@ namespace System.Net.Security.Tests
         {
             if (!_isKrbAvailable)
             {
+                _output.WriteLine("skipping NegotiateStream_StreamToStream_KerberosAuthentication_Success");
                 return;
             }
 
@@ -153,6 +154,7 @@ namespace System.Net.Security.Tests
         {
             if (!_isKrbAvailable)
             {
+                _output.WriteLine("skipping NegotiateStream_StreamToStream_AuthToHttpTarget_Success");
                 return;
             }
 
@@ -197,6 +199,7 @@ namespace System.Net.Security.Tests
         {
             if (!_isKrbAvailable)
             {
+                _output.WriteLine("skipping NegotiateStream_StreamToStream_KerberosAuthWithoutRealm_Success");
                 return;
             }
 
@@ -239,6 +242,7 @@ namespace System.Net.Security.Tests
         {
             if (!_isKrbAvailable)
             {
+                _output.WriteLine("skipping NegotiateStream_StreamToStream_KerberosAuthDefaultCredentials_Success");
                 return;
             }
 
@@ -284,6 +288,7 @@ namespace System.Net.Security.Tests
         {
             if (!_isKrbAvailable)
             {
+                _output.WriteLine("skipping NegotiateStream_EchoServer_ClientWriteRead_Successive_Sync_Success");
                 return;
             }
 
@@ -326,6 +331,7 @@ namespace System.Net.Security.Tests
         {
             if (!_isKrbAvailable)
             {
+                _output.WriteLine("skipping NegotiateStream_EchoServer_ClientWriteRead_Successive_Async_Success");
                 return;
             }
 
@@ -369,6 +375,7 @@ namespace System.Net.Security.Tests
         {
             if (!_isKrbAvailable)
             {
+                _output.WriteLine("skipping NegotiateStream_StreamToStream_KerberosAuthDefaultCredentialsNoSeed_Failure");
                 return;
             }
 
@@ -391,6 +398,7 @@ namespace System.Net.Security.Tests
         {
             if (!_isKrbAvailable)
             {
+                _output.WriteLine("skipping NegotiateStream_StreamToStream_KerberosAuthInvalidUser_Failure");
                 return;
             }
 
@@ -417,6 +425,7 @@ namespace System.Net.Security.Tests
         {
             if (!_isKrbAvailable)
             {
+                _output.WriteLine("skipping NegotiateStream_StreamToStream_KerberosAuthInvalidPassword_Failure");
                 return;
             }
 
@@ -443,6 +452,7 @@ namespace System.Net.Security.Tests
         {
             if (!_isKrbAvailable)
             {
+                _output.WriteLine("skipping NegotiateStream_StreamToStream_KerberosAuthInvalidTarget_Failure");
                 return;
             }
 
@@ -464,7 +474,7 @@ namespace System.Net.Security.Tests
         {
             try
             {
-                _fixture.CheckAndClearCredentials();
+                _fixture.CheckAndClearCredentials(_output);
             }
             catch
             {

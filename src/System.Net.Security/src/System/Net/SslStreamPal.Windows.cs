@@ -28,7 +28,7 @@ namespace System.Net
 
         public static Exception GetException(SecurityStatusPal status)
         {
-            int win32Code = (int)GetInteropFromSecurityStatusPal(status.ErrorCode);
+            int win32Code = (int)SecurityStatusAdapterPal.GetInteropFromSecurityStatusPal(status);
             return new Win32Exception(win32Code);
         }
 
@@ -184,7 +184,7 @@ namespace System.Net
                 }
             }
 
-            return new SecurityStatusPal(SecurityStatusPalErrorCodeFromInterop(errorCode));
+            return SecurityStatusAdapterPal.GetSecurityStatusPalFromInterop(errorCode);
         }
 
         public unsafe static SafeFreeContextBufferChannelBinding QueryContextChannelBinding(SafeDeleteContext securityContext, ChannelBindingKind attribute)

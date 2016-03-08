@@ -77,10 +77,17 @@ namespace System.Net.Security
                 throw new PlatformNotSupportedException(SR.net_nego_ntlm_not_supported);
             }
 
-            // Note: In client case, equivalent of default credentials is to use previous, cached Kerberos TGT to get service-specific ticket.
-            return (string.IsNullOrEmpty(credential.UserName) || string.IsNullOrEmpty(credential.Password)) ?
-                new SafeFreeNegoCredentials(string.Empty, string.Empty, string.Empty) :
-                new SafeFreeNegoCredentials(credential.UserName, credential.Password, credential.Domain);
+            try
+            {
+                // Note: In client case, equivalent of default credentials is to use previous, cached Kerberos TGT to get service-specific ticket.
+                return (string.IsNullOrEmpty(credential.UserName) || string.IsNullOrEmpty(credential.Password)) ?
+                    new SafeFreeNegoCredentials(string.Empty, string.Empty, string.Empty) :
+                    new SafeFreeNegoCredentials(credential.UserName, credential.Password, credential.Domain);
+            }
+            catch
+            {
+                throw new Win32Exception((int)SecurityStatusPalErrorCode.UnknownCredentials);
+            }
         }
 
         internal static SecurityStatusPal InitializeSecurityContext(
@@ -118,7 +125,7 @@ namespace System.Net.Security
             ref SafeDeleteContext securityContext,
             SecurityBuffer[] inSecurityBufferArray)
         {
-            return SecurityStatusPal.OK;
+            return new SecurityStatusPal(SecurityStatusPalErrorCode.OK);
         }
 
         internal static SecurityStatusPal AcceptSecurityContext(
@@ -272,7 +279,8 @@ namespace System.Net.Security
                     negoContext.SetGssContext(contextHandle);
                 }
 
-                return done ? SecurityStatusPal.CompleteNeeded : SecurityStatusPal.ContinueNeeded;
+                SecurityStatusPalErrorCode errorCode = done ? SecurityStatusPalErrorCode.CompleteNeeded : SecurityStatusPalErrorCode.ContinueNeeded;
+                return new SecurityStatusPal(errorCode);
             }
             catch(Exception ex)
             {
@@ -283,7 +291,7 @@ namespace System.Net.Security
                     GlobalLog.Print("Exception Caught. - " + ex);
                 }
 
-                return SecurityStatusPal.InternalError;
+                return new SecurityStatusPal(SecurityStatusPalErrorCode.InternalError, ex);
             }
         }
     }

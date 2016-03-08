@@ -35,7 +35,7 @@ namespace System.Net.Security
                 {
                     SecurityStatusPal status;
                     SafeDeleteContext securityContext = context.GetContext(out status);
-                    if (status != SecurityStatusPal.OK)
+                    if (status.ErrorCode != SecurityStatusPalErrorCode.OK)
                     {
                         throw new Win32Exception((int)SecurityStatusAdapterPal.GetInteropFromSecurityStatusPal(status));
                     }

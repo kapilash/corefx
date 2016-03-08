@@ -778,7 +778,7 @@ namespace System.Net.Security
 
         internal static bool IsError(SecurityStatusPal status)
         {
-            return ((int)status >= (int)SecurityStatusPal.OutOfMemory);
+            return ((int)status.ErrorCode >= (int)SecurityStatusPalErrorCode.OutOfMemory);
         }
 
         private unsafe byte[] GetOutgoingBlob(byte[] incomingBlob, ref Exception e)
@@ -829,7 +829,7 @@ namespace System.Net.Security
         {
             Win32Exception e = new Win32Exception((int)error);
 
-            if (e.NativeErrorCode == (int)SecurityStatusPal.LogonDenied)
+            if (e.NativeErrorCode == (int)SecurityStatusPalErrorCode.LogonDenied)
             {
                 throw new InvalidCredentialException(SR.net_auth_bad_client_creds, e);
             }
@@ -846,7 +846,7 @@ namespace System.Net.Security
         {
             Win32Exception win32exception = exception as Win32Exception;
 
-            return (win32exception != null) && (win32exception.NativeErrorCode == (int)SecurityStatusPal.LogonDenied);
+            return (win32exception != null) && (win32exception.NativeErrorCode == (int)SecurityStatusPalErrorCode.LogonDenied);
         }
     }
 }
