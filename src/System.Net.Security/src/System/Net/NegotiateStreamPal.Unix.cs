@@ -84,9 +84,9 @@ namespace System.Net.Security
                     new SafeFreeNegoCredentials(string.Empty, string.Empty, string.Empty) :
                     new SafeFreeNegoCredentials(credential.UserName, credential.Password, credential.Domain);
             }
-            catch
+            catch(Exception ex)
             {
-                throw new Win32Exception((int)SecurityStatusPalErrorCode.UnknownCredentials);
+                throw new Win32Exception(NTE_FAIL, ex.Message);
             }
         }
 
@@ -150,7 +150,7 @@ namespace System.Net.Security
 
         internal static Win32Exception CreateExceptionFromError(SecurityStatusPal statusCode)
         {
-            return new Win32Exception(NTE_FAIL);
+            return new Win32Exception(NTE_FAIL, statusCode.ToString());
         }
 
         internal static int Encrypt(

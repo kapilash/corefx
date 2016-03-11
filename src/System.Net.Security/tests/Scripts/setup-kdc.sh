@@ -13,7 +13,6 @@ password="password"
 kadmin="kadmin.local"
 krb5kdc="krb5kdc"
 kdb5_util="kdb5_util"
-add_principal_cmd="add_principal -pw ${password}"
 
 krb_conf="krb5.conf"
 krb_conf_location="/etc/krb5.conf"
@@ -85,6 +84,7 @@ configure_kdc()
     # Remove database files if exist
     rm -f ${database_files}
 
+    add_principal_cmd="add_principal -pw ${password}"
     # Create/copy krb5.conf and kdc.conf
     echo "Copying krb5.conf and kdc.conf.."
     cp ${krb_conf} ${krb_conf_location} || \
