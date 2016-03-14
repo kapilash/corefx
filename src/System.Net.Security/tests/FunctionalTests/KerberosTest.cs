@@ -356,12 +356,12 @@ namespace System.Net.Security.Tests
                 Assert.True(finished, "Handshake completed in the allotted time");
 
                 Task serverTask = server.PollMessageAsync(2);
-                Task[] msgTasks = new Task[5];
-                msgTasks[0] = client.WriteAsync(_firstMessage, 0, _firstMessage.Length);
-                msgTasks[1] = client.WriteAsync(_secondMessage, 0, _secondMessage.Length);
-                msgTasks[2] = client.ReadAsync(firstRecvBuffer, 0, firstRecvBuffer.Length);
-                msgTasks[3] = client.ReadAsync(secondRecvBuffer, 0, secondRecvBuffer.Length);
-                msgTasks[4] = serverTask;
+                Task[] msgTasks = new Task[3];
+                msgTasks[0] = client.WriteAsync(_firstMessage, 0, _firstMessage.Length).ContinueWith((t) =>
+                    client.WriteAsync(_secondMessage, 0, _secondMessage.Length));
+                msgTasks[1] =  client.ReadAsync(firstRecvBuffer, 0, firstRecvBuffer.Length).ContinueWith((t) =>
+                    client.ReadAsync(secondRecvBuffer, 0, secondRecvBuffer.Length));
+                msgTasks[2] = serverTask;
                 finished = Task.WaitAll(msgTasks, TestConfiguration.PassingTestTimeoutMilliseconds);
                 Assert.True(finished, "Messages sent and received in the allotted time");
                 Assert.True(_firstMessage.SequenceEqual(firstRecvBuffer), "The first message received is as expected");
