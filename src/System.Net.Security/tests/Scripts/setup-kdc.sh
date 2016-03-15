@@ -29,7 +29,7 @@ usage()
 clean_up()
 {
     echo "Stopping KDC.."
-    if pgrep krb5kdc 2> /dev/null; then killall krb5kdc ; fi
+    if pgrep krb5kdc 2> /dev/null; then pkill krb5kdc 2> /dev/null ; fi
 
     echo "Removing config files"
     if [ -f ${krb_conf_location} ]; then
@@ -55,6 +55,14 @@ clean_up()
             fi
             ;;
 
+        "opensuse")
+            kdc_conf_location="/var/lib/kerberos/krb5kdc/kdc.conf"
+            zypper search --installed-only krb5-server >/dev/null 2>&1
+            if [ $? -eq 0 ]; then
+               echo "Uninstalling krb5-server"
+               zypper --non-interactive remove krb5-server >/dev/null 2>&1
+            fi
+            ;;
         *)
             echo "This is an unsupported operating system"
             ;;
@@ -79,7 +87,7 @@ error_exit()
 configure_kdc()
 {
     echo "Stopping KDC.."
-    if pgrep krb5kdc 2> /dev/null; then killall krb5kdc ; fi
+    if pgrep krb5kdc 2> /dev/null; then pkill krb5kdc ; fi
 
     # Remove database files if exist
     rm -f ${database_files}
@@ -223,6 +231,45 @@ case ${OS} in
         systemctl enable krb5kdc.service
         ;;
 
+    "opensuse")
+          # the following is a workaround for opensuse
+          # details at https://groups.google.com/forum/#!topic/comp.protocols.kerberos/3itzZQ4fETA
+          # and http://lists.opensuse.org/opensuse-factory/2013-10/msg00099.html
+          if [ ! -d /run/user/0 ]; then
+             mkdir /run/user/0
+          fi
+
+          krb5kdc="/usr/lib/mit/sbin/krb5kdc"
+          kadmin="/usr/lib/mit/sbin/kadmin.local"
+          kdb5_util="/usr/lib/mit/sbin/kdb5_util"
+          kdc_conf="kdc.conf.opensuse"
+          kdc_conf_location="/var/lib/kerberos/krb5kdc/kdc.conf"
+          database_files="/var/lib/kerberos/krb5kdc/principal*"
+
+          zypper search --installed-only krb5-mini >/dev/null 2>&1
+          if [ $? -eq 0 ]; then
+              echo "removing krb5-mini which conflicts with krb5-server and krb5-devel"
+              zypper --non-interactive remove krb5-mini
+          fi
+
+          zypper search --installed-only krb5-server >/dev/null 2>&1
+          if [ $? -ne 0 ]; then
+             echo "Installing krb5-server.."
+             zypper --non-interactive install krb5-server krb5-client krb5-devel
+             if [ $? -ne 0 ]; then
+                 echo "Error occured during installation, aborting"
+                 exit 1
+             fi
+         else
+             echo "krb5-server already installed.."
+             exit 2
+         fi
+
+         configure_kdc
+
+         echo "Starting KDC..${krb5kdc}"
+         ${krb5kdc}
+         ;;
     *)
         echo "This is an unsupported operating system"
         ;;

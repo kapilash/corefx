@@ -102,6 +102,9 @@
     <None Include="..\Scripts\kdc.conf.centos">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="..\Scripts\kdc.conf.opensuse">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <Compile Include="KerberosTest.cs" />
     <Compile Include="UnixGssFakeNegotiateStream.cs" />
     <Compile Include="UnixGssFakeStreamFramer.cs" />
