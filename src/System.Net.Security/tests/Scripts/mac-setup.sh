@@ -5,12 +5,13 @@ realm="TEST.COREFX.NET"
 user_password=password
 directory_path="/LDAPv3/127.0.0.1"
 PROGNAME=$(basename $0)
+krbuser="krb_user"
 usage()
 {
     echo "This script must be run with super-user privileges."
     echo "Usage: ${PROGNAME} "
     echo "   -h to print this message"
-    echo "   [-p <password for krb_user>]"
+    echo "   [-p <password for ${krbuser}>]"
     echo "   [-a adminname]"
     echo "   [-r realm-name]"
     echo "   [-u user-name]"
@@ -45,13 +46,8 @@ done
 maxid=$(dscl ${directory_path} -list /Users UniqueID | awk '{print $2}' | sort -ug | tail -1)
 newid=$((maxid+1))
 
-echo "User password = ${user_password}"
-echo "Admin password = ${admin_password}"
-echo "New Id = ${newid}"
-echo "directory_path = ${directory_path}"
-
-host_principal="HOST/${host_name}@${realm}"
-http_principal="HTTP/${host_name}@${realm}"
+host_principal="TESTHOST/${host_name}@${realm}"
+http_principal="TESTHTTP/${host_name}@${realm}"
 
 echo "Creating ${host_principal} "
 krbservicesetup -r ${realm} -a ${admin_name} -p ${admin_password} -x HOST ${host_principal}
@@ -59,15 +55,12 @@ krbservicesetup -r ${realm} -a ${admin_name} -p ${admin_password} -x HOST ${host
 echo "Creating ${http_principal} "
 krbservicesetup -r ${realm} -a ${admin_name} -p ${admin_password} -x HTTP ${http_principal}
 
-echo "Creating krb_user"
-krbservicesetup -t ${realm} -a ${admin_name} -p ${admin_password} krb_user
-
 #Creating user
-dscl ${directory_path} -create /Users/krb_user
-dscl ${directory_path} -create /Users/krb_user
-dscl ${directory_path} -create /Users/krb_user HomeDirectoryQuota 0
-dscl ${directory_path} -create /Users/krb_user RealName "KRB USER"
-dscl ${directory_path} -create /Users/krb_user UniqueID $newid
-dscl ${directory_path} -create /Users/krb_user PrimaryGroupID 20 # TODO: verify for other machines
-dscl ${directory_path} -create /Users/krb_user NFSHomeDirectory /dev/null
-dscl ${directory_path} -passwd /Users/krb_user ${user_password}
+dscl -u ${admin_name} -P ${admin_password} ${directory_path} -create /Users/${krbuser}
+dscl -u ${admin_name} -P ${admin_password} ${directory_path} -create /Users/${krbuser}
+dscl -u ${admin_name} -P ${admin_password} ${directory_path} -create /Users/${krbuser} HomeDirectoryQuota 0
+dscl -u ${admin_name} -P ${admin_password} ${directory_path} -create /Users/${krbuser} RealName "KRB USER"
+dscl -u ${admin_name} -P ${admin_password} ${directory_path} -create /Users/${krbuser} UniqueID $newid
+dscl -u ${admin_name} -P ${admin_password} ${directory_path} -create /Users/${krbuser} PrimaryGroupID 20 # TODO: verify for other machines
+dscl -u ${admin_name} -P ${admin_password} ${directory_path} -create /Users/${krbuser} NFSHomeDirectory /dev/null
+dscl -u ${admin_name} -P ${admin_password} ${directory_path} -passwd /Users/${krbuser} ${user_password}
