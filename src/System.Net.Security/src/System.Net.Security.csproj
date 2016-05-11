@@ -354,6 +354,12 @@
     <Compile Include="$(CommonPath)\System\Net\ContextAwareResult.Unix.cs">
       <Link>Common\System\Net\ContextAwareResult.Unix.cs</Link>
     </Compile>
+    <Compile Include="$(CommonPath)\System\Net\Unix\SafeFreeCredentials.cs">
+      <Link>Common\System\Net\Unix\SafeFreeCredentials.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\System\Net\Unix\SafeDeleteContext.cs">
+      <Link>Common\System\Net\Unix\SafeDeleteContext.cs</Link>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetGroup)' == 'net46'">
